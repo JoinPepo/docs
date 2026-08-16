@@ -108,8 +108,7 @@
                     "type": "string",
                     "enum": [
                       "/v1/trending",
-                      "/v1/search/videos",
-                      "/v1/datasets"
+                      "/v1/search/videos"
                     ],
                     "description": "Which workflow to price."
                   },
@@ -176,7 +175,7 @@
                       "properties": {
                         "cost_usd": {
                           "type": "object",
-                          "description": "A band, not a number: the dominant cost driver is how many candidates must be analysed to find N qualifying results, which is not knowable before the search runs.",
+                          "description": "Low, expected and high are identical when the corpus could be counted in advance, which is the normal case for trending and search. They widen only when it could not.",
                           "properties": {
                             "low": {
                               "type": "number"
@@ -191,14 +190,14 @@
                         },
                         "assumes": {
                           "type": "object",
-                          "description": "Notably `candidates_analyzed` \u2014 trending and dataset calls deliberately collect several times more candidates than they return, and you are billed against the candidates.",
+                          "description": "Notably `posts_considered` \u2014 how many posts the call will read. That is what the price tracks, and what the invoice bills.",
                           "additionalProperties": {
                             "type": "number"
                           },
                           "example": {
+                            "posts_considered": 412,
                             "videos_returned": 25,
-                            "platforms": 1,
-                            "candidates_analyzed": 200
+                            "platforms": 1
                           }
                         },
                         "balance_usd": {
@@ -216,6 +215,9 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
           }
         }
       }
@@ -288,6 +290,151 @@
             "$ref": "#/components/responses/Unauthorized"
           }
         }
+      },
+      "post": {
+        "operationId": "setBrandProfile",
+        "summary": "Create or replace the brand profile",
+        "description": "Saves the profile and makes it active immediately. Every workflow result from then on records its version in `brand_profile_version`.\n\nCall this before any workflow \u2014 they return `409 profile_required` until a profile exists, because results without one would be category noise rather than answers about your brand.\n\nReplacing a profile creates a new version rather than mutating the old one; previous versions are retained.",
+        "tags": [
+          "Account"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "brand_names"
+                ],
+                "properties": {
+                  "brand_names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Required. Include spelling variants and nicknames \u2014 consumers rarely write your brand the way your style guide does.",
+                    "example": [
+                      "KISS",
+                      "KISS Nails"
+                    ]
+                  },
+                  "products": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  },
+                  "competitors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "category": {
+                    "type": "string"
+                  },
+                  "customer_problems": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "audiences": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "markets": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "creators": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "campaigns": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "hashtags": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "exclusions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Topics withheld from every result, enforced server-side. Withheld rows are counted in `corpus.excluded_by_brand_profile` so the filtering is never silent."
+                  }
+                }
+              },
+              "examples": {
+                "minimal": {
+                  "summary": "The smallest useful profile",
+                  "value": {
+                    "brand_names": [
+                      "KISS",
+                      "KISS Nails"
+                    ],
+                    "competitors": [
+                      "Glamnetics"
+                    ],
+                    "category": "press-on nails",
+                    "exclusions": [
+                      "recall"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Saved and active.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "approved"
+                      ]
+                    },
+                    "version": {
+                      "type": "integer"
+                    },
+                    "profile": {
+                      "type": "object"
+                    },
+                    "note": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
       }
     },
     "/v1/trending": {
@@ -319,7 +466,7 @@
                   "window": {
                     "type": "string",
                     "pattern": "^\\d+[hd]$",
-                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value applies no window rather than failing.",
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus.",
                     "example": "7d"
                   },
                   "limit": {
@@ -385,6 +532,9 @@
           },
           "409": {
             "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
           }
         }
       }
@@ -416,7 +566,9 @@
                   },
                   "window": {
                     "type": "string",
-                    "example": "7d"
+                    "example": "7d",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus."
                   },
                   "limit": {
                     "type": "integer",
@@ -476,6 +628,9 @@
           },
           "409": {
             "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
           }
         }
       }
@@ -615,6 +770,24 @@
             }
           }
         }
+      },
+      "InvalidRequest": {
+        "description": "A parameter was malformed. Nothing was charged. `field` names the offender.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/InvalidRequestError"
+            },
+            "example": {
+              "error": {
+                "type": "invalid_request",
+                "message": "Could not parse window \"7dd\". Use a number followed by h or d, e.g. \"24h\" or \"7d\".",
+                "request_id": "req_\u2026",
+                "field": "window"
+              }
+            }
+          }
+        }
       }
     },
     "schemas": {
@@ -732,7 +905,11 @@
             },
             "description": "When a platform does not expose a metric, the remaining ones are reweighted and `confidence` is lowered."
           }
-        }
+        },
+        "required": [
+          "snapshots",
+          "hours_observed"
+        ]
       },
       "Momentum": {
         "type": "object",
@@ -742,6 +919,7 @@
           "classification",
           "confidence",
           "coverage",
+          "comparison_group",
           "floors_met"
         ],
         "properties": {
@@ -1029,7 +1207,13 @@
           "request_id": {
             "type": "string"
           }
-        }
+        },
+        "required": [
+          "results",
+          "trend",
+          "corpus",
+          "usage"
+        ]
       },
       "SearchResponse": {
         "type": "object",
@@ -1104,8 +1288,19 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "disclaimer": {
+            "type": "string",
+            "description": "Ships on every response carrying view-derived numbers.",
+            "example": "Views are observed content views (potential exposures), not ad impressions."
           }
-        }
+        },
+        "required": [
+          "results",
+          "corpus",
+          "search_method",
+          "usage"
+        ]
       },
       "VideoDetail": {
         "type": "object",
@@ -1268,8 +1463,19 @@
             "type": "string",
             "description": "States what grounding this video's analysis does and does not have.",
             "example": "Timestamped visual/spoken evidence is not stored for this video."
+          },
+          "disclaimer": {
+            "type": "string",
+            "description": "Ships on every response carrying view-derived numbers.",
+            "example": "Views are observed content views (potential exposures), not ad impressions."
           }
-        }
+        },
+        "required": [
+          "video",
+          "metrics",
+          "history",
+          "comments"
+        ]
       },
       "BrandProfile": {
         "type": "object",
@@ -1475,6 +1681,40 @@
                     }
                   }
                 }
+              }
+            }
+          }
+        }
+      },
+      "InvalidRequestError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message",
+              "field"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "invalid_request"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "field": {
+                "type": "string",
+                "description": "Which parameter was malformed."
               }
             }
           }

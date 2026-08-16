@@ -39,20 +39,37 @@ print(r.json())
 { "balance_usd": 20.0, "default_call_cap_usd": null, "mode": "live" }
 ```
 
-## 2. Confirm your brand profile exists
+## 2. Create your brand profile
 
-Every workflow reads it. Without one you get category noise instead of answers about your brand, so the API refuses the call rather than returning something plausible and generic.
+Every workflow reads it, and it's what makes results about *your* brand rather than your category. A new workspace returns `"status": "needs_setup"` until you create one.
 
 ```bash
-curl https://api.pepo.ai/v1/brand-profile \
-  -H "Authorization: Bearer $PEPO_API_KEY"
+curl -X POST https://api.pepo.ai/v1/brand-profile \
+  -H "Authorization: Bearer $PEPO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "brand_names": ["KISS", "KISS Nails"],
+    "competitors": ["Glamnetics", "Static Nails"],
+    "category": "press-on nails",
+    "exclusions": ["recall"]
+  }'
 ```
 
-A new workspace returns `200` with `"status": "needs_setup"` and the path to fix it — not an error. See [Brand profile](/brand-profile).
+```json Response
+{ "status": "approved", "version": 1, "profile": { ... } }
+```
+
+`brand_names` is the only required field — include spelling variants, since consumers rarely write your brand the way your style guide does. Everything else sharpens the results and can be added later. `exclusions` is worth filling in now: it's enforced on every result, so topics you never want surfaced are withheld before they reach you.
+
+<Tip>
+Prefer not to write JSON? The `pepo-setup-brand` prompt in [Claude](/mcp/overview) researches your brand and drafts the whole profile for you to approve. Same result.
+</Tip>
+
+Full field list: [Brand profile](/brand-profile).
 
 ## 3. Price the call before you make it
 
-Cost tracks how many candidate videos have to be analysed to find the results you asked for, which is not knowable in advance — so estimates come back as a band.
+Cost tracks how many posts the call reads, which Pepo can count exactly — so the estimate matches the invoice.
 
 ```bash
 curl -X POST https://api.pepo.ai/v1/estimate \
@@ -64,15 +81,15 @@ curl -X POST https://api.pepo.ai/v1/estimate \
 ```json Response
 {
   "estimate": {
-    "cost_usd": { "low": 3.02, "expected": 6.02, "high": 12.02 },
-    "assumes": { "videos_returned": 25, "platforms": 1, "candidates_analyzed": 200 },
+    "cost_usd": { "low": 0.83, "expected": 0.83, "high": 0.83 },
+    "assumes": { "posts_considered": 412, "videos_returned": 25, "platforms": 1 },
     "balance_usd": 20.0,
     "affordable": true
   }
 }
 ```
 
-`candidates_analyzed` is the number that surprises people: to return 25 good results the system looks at roughly 200, and you are billed against the candidates. It is in the estimate so it is never a surprise on an invoice.
+`posts_considered` is what drives the price — how many posts in your corpus match the filters, not how many results you asked for. Narrowing `window` or `platforms` reads fewer posts and costs less; asking for 10 results instead of 25 doesn't change it.
 
 ## 4. Ask what is trending
 
@@ -125,7 +142,7 @@ This is the part worth slowing down for. A trimmed real response:
     "reasons": ["A single video/creator dominates. One video outperforming is virality, not a trend."]
   },
   "caveat": null,
-  "usage": { "cost_usd": 0.07, "balance_usd": 19.93 }
+  "usage": { "cost_usd": 0.83, "balance_usd": 19.17 }
 }
 ```
 

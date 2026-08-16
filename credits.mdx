@@ -21,18 +21,18 @@ Two guardrails, not one, because a balance alone does not stop a single call fro
 You cannot see a dashboard from inside a chat client, so the meter travels with the payload. Every metered response carries headers and a `usage` block:
 
 ```http
-X-Pepo-Cost-Usd: 0.0660
-X-Pepo-Balance-Usd: 19.9340
+X-Pepo-Cost-Usd: 0.8340
+X-Pepo-Balance-Usd: 19.1660
 X-Pepo-Request-Id: req_a16f58106b2a4b90a9a1c64e90858e3c
 ```
 
 ```json
 "usage": {
-  "cost_usd": 0.066,
-  "balance_usd": 19.934,
+  "cost_usd": 0.834,
+  "balance_usd": 19.166,
   "billed": [
-    { "unit": "search_request",  "quantity": 1,  "unit_cost_usd": 0.01,  "cost_usd": 0.01 },
-    { "unit": "content_enriched", "quantity": 28, "unit_cost_usd": 0.002, "cost_usd": 0.056 }
+    { "unit": "search_request",   "quantity": 1,   "unit_cost_usd": 0.01,  "cost_usd": 0.01 },
+    { "unit": "content_enriched", "quantity": 412, "unit_cost_usd": 0.002, "cost_usd": 0.824 }
   ],
   "truncated": false
 }
@@ -44,19 +44,24 @@ X-Pepo-Request-Id: req_a16f58106b2a4b90a9a1c64e90858e3c
 
 Billed on the unit the underlying cost actually tracks, so what you pay does not depend on how you phrase a question.
 
-| Unit | What it counts |
+| Unit | Price | What it counts |
+|---|---|---|
+| `search_request` | $0.010 | One query against your corpus |
+| `content_enriched` | $0.002 | One post read and analysed |
+
+### What actually drives the price
+
+**How many posts a call reads**, not how many results it returns. A trending call over 412 posts costs the same whether you ask for 10 results or 100.
+
+That makes the levers straightforward:
+
+| To spend less | Effect |
 |---|---|
-| `search_request` | One candidate-retrieval call |
-| `video_analyzed` | One video through the analysis pipeline — the dominant cost |
-| `content_enriched` | One comment thread or review page enriched |
-| `monitor_snapshot` | One scheduled observation |
-| `dataset_row_verified` | One verified row in a dataset build |
+| Narrow `window` | Reads fewer posts. The biggest lever. |
+| Restrict `platforms` | Reads only that platform's posts |
+| Change `limit` | **No effect on cost** |
 
-### The multiplier worth knowing about
-
-Finding 25 videos worth showing you means looking at roughly 200. Building a 500-row verified dataset means examining several thousand candidates. **You are billed against the candidates, not the results.**
-
-That ratio is disclosed up front in every estimate as `assumes.candidates_analyzed`, and again after the fact in `usage.billed`. It is the single most common source of invoice surprise in this category of product, which is why it appears twice.
+Because Pepo can count the posts a call will read before running it, the estimate is exact rather than a guess — `estimate` and `usage.cost_usd` agree.
 
 ## Estimate first
 
@@ -65,15 +70,15 @@ That ratio is disclosed up front in every estimate as `assumes.candidates_analyz
 ```json
 {
   "estimate": {
-    "cost_usd": { "low": 3.02, "expected": 6.02, "high": 12.02 },
-    "assumes": { "videos_returned": 25, "candidates_analyzed": 200 },
+    "cost_usd": { "low": 0.83, "expected": 0.83, "high": 0.83 },
+    "assumes": { "posts_considered": 412, "videos_returned": 25 },
     "balance_usd": 20.0,
     "affordable": true
   }
 }
 ```
 
-A band rather than a number because the dominant driver — how many candidates must be analysed to find N qualifying results — is not knowable until the search runs.
+Low, expected and high are identical here because the corpus was counted. They widen only when a call's scope can't be counted in advance.
 
 <Tip>
 If you are driving Pepo from an agent, make `estimate` available to it. An agent that can price its own plan proposes the affordable version first, instead of discovering the ceiling by hitting it.
@@ -91,14 +96,15 @@ A refused call returns `402` and carries a way forward:
     "estimated_cost_usd": 5.0,
     "balance_usd": 4.934,
     "suggestions": [
-      "Reduce `limit` from 50 to 20 (estimated $4.82).",
+      "Narrow `window` — this workspace holds 5000 matching posts and the balance covers about 2465 (roughly the most recent 49%).",
+      "Restrict `platforms` to one platform — cost tracks how many posts are read, so a narrower platform set reads fewer.",
       "Add credits at https://app.pepo.ai/settings/billing"
     ]
   }
 }
 ```
 
-`suggestions` is computed against your actual balance — the first entry is the largest version of your request that still fits. An error that says only "no" ends an agent's task; one that carries an affordable plan lets it continue.
+`suggestions` is computed against your actual balance and names the levers that actually move the price for this call. An error that says only "no" ends an agent's task; one that carries an affordable plan lets it continue.
 
 Nothing is charged on a `402`. No work was started.
 

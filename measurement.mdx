@@ -5,7 +5,7 @@ description: "The scoring, the evidence gates, and what Pepo refuses to claim."
 
 A video is not trending because it has a lot of views. Views measure size; trending is a claim about a **trajectory**, and a trajectory needs more than one observation.
 
-This page is the method. It is deliberately public: the refusals are the product, and a customer who cannot check them has no reason to trust the numbers.
+This page is the method, in full. It's public because you should be able to check it — a score you can't interrogate is a score you can't defend when someone asks.
 
 ## The comparison group
 
@@ -90,23 +90,15 @@ That last clause is what stops one mega-creator's post being sold to you as a mo
 
 Read it before the score. `87 / low confidence / 2 snapshots` and `87 / high confidence / 6 snapshots` are not the same finding, and only one of them belongs in a deck.
 
-## What we refuse to say
+## Two things Pepo won't call something
 
 <AccordionGroup>
-  <Accordion title="We do not call views impressions">
-    Public video views are observed content views — potential exposures. Real ad impressions require first-party or Ads Manager data. Every response carrying view-derived numbers repeats this, because it is the sentence most likely to get lost between an API and a slide.
+  <Accordion title="Views are not impressions">
+    Public video views are observed content views — potential exposures. Real ad impressions need first-party or Ads Manager data. Responses carrying view-derived numbers say so, because that's the distinction most likely to get lost between an API and a slide.
   </Accordion>
 
-  <Accordion title="We do not turn correlation into attribution">
-    Campaign analysis separates **observed lift** (metrics rose during the campaign) from **attributed lift** (the campaign caused it). Attributed lift is returned as `null` with a reason unless a defensible measurement design was supplied. Correlation is never promoted.
-  </Accordion>
-
-  <Accordion title="We do not report movements below the evidence floor">
-    A share-of-voice movement needs at least 30 independent pieces of content, movement beyond that brand's normal weekly variation, visibility across more than one source, and an identifiable cause. A consumer issue needs at least 15 conversations from 5 independent people. Below the floor it is returned as an `emerging_observation`, never as a finding.
-  </Accordion>
-
-  <Accordion title="We do not return zero for unknown">
-    A metric that was never observed is `null` with its coverage attached. An empty corpus is reported as an empty corpus. `0` means measured and zero — nothing else.
+  <Accordion title="Unobserved is not zero">
+    A metric that was never observed comes back as `null` with its coverage attached. An empty corpus is reported as an empty corpus. `0` means measured and zero.
   </Accordion>
 </AccordionGroup>
 
@@ -122,4 +114,4 @@ So a newly connected workspace genuinely cannot answer trending questions yet, a
 
 That text arrives in the `caveat` field of the response, verbatim, so it survives being read by an assistant and repeated to you.
 
-Coverage improves on its own as snapshots accumulate: watchlist-grade within a day, trend-grade within two or three. The `corpus.posts_trend_grade` field tells you how far along that is at any moment.
+Coverage builds as [collection runs](/corpus): young posts are re-observed every few hours, so a post typically becomes watchlist-grade within a day and trend-grade within two or three. `corpus.posts_trend_grade` tells you how many posts have cleared that bar at any moment.

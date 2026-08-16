@@ -1,0 +1,94 @@
+---
+title: "Where your data comes from"
+description: "How Pepo builds and keeps your brand's video corpus."
+---
+
+Your **corpus** is the set of social video Pepo holds for your brand: the posts, their creators, their captions, their comments, and a running history of how their engagement moved. Everything Pepo answers is answered from it.
+
+It is built for you, from two directions at once.
+
+## Two discovery paths
+
+<CardGroup cols={2}>
+  <Card title="Your own accounts" icon="user">
+    The handles you own. Pepo reads their timelines, so your published content is tracked from the day you connect.
+  </Card>
+  <Card title="Discovery queries" icon="magnifying-glass">
+    What people say about you without tagging you. Pepo searches by product, category, problem and competitor — the conversation you don't own.
+  </Card>
+</CardGroup>
+
+The second path is the one that matters, and it's why the [brand profile](/brand-profile) earns its place. **Your products, competitors and customer problems become the search queries.** A TV brand doesn't get tracked by watching `@brand` — it gets tracked by searching what people actually type: the product lines, the comparisons against rivals, the complaints, the retailer names.
+
+A brand's discovery set typically runs to a dozen or more queries across platforms, covering:
+
+| Query shape | Finds |
+|---|---|
+| `<brand> <product line>` | People discussing specific SKUs |
+| `<brand> review` | Considered opinion, the highest-intent content |
+| `<brand> vs <competitor>` | Head-to-head comparison, where switching happens |
+| `<brand> <problem>` | Complaints and support moments before they reach you |
+| `<brand> <retailer>` | Purchase-moment content |
+
+Discovery hits are then **matched against the brand's own name before they count.** A search result whose caption isn't actually about your brand is discarded rather than padding the corpus — which is what keeps "posts considered" a number that means something.
+
+## Then comments
+
+For posts that have them, Pepo collects the comment threads — **comment-richest posts first**. That ordering is deliberate: comments are where consumers say what they actually think, and prioritising the busiest threads means you get the widest view of the conversation for a given amount of collection.
+
+Comment tone and coverage are what you see in [`get_video`](/api-reference/discovery/get-one-video).
+
+## Then, repeatedly, the metrics
+
+This is the part that makes trend detection possible at all.
+
+Collection doesn't stop at first capture. Pepo re-observes posts on a decaying cadence — frequently while a video is young and its trajectory is still forming, then less often as it settles:
+
+| Post age | Observed |
+|---|---|
+| First 24 hours | Every few hours |
+| 1–3 days | Every six hours |
+| Up to 14 days | Daily |
+
+Each observation is appended, never overwritten. That series is the evidence behind every momentum score, and it's why [a video needs three observations across twelve hours](/measurement) before Pepo will call it trending.
+
+<Note>
+Platforms expose a video's **current** counts, not its past ones. There is no way to buy back last Tuesday's observations. This is the one part of Pepo that can't be sped up — a corpus that started collecting yesterday knows what happened yesterday, and a corpus that has been running for a month knows a month.
+</Note>
+
+## Reruns add, they don't duplicate
+
+Collection is additive and idempotent. Posts are keyed on platform and post id; re-running discovery merges rather than duplicating, and posts whose comments are already held are skipped. Widening your discovery queries later deepens the corpus instead of forking it.
+
+## What you get to control
+
+| | |
+|---|---|
+| **Your own accounts** | The handles Pepo tracks as yours |
+| **Discovery queries** | What Pepo searches for. Derived from your brand profile, and tunable |
+| **Platforms** | Which platforms to collect from |
+| **Exclusions** | Topics withheld from every result. See [Brand profile](/brand-profile) |
+
+During the pilot these are configured with you at onboarding, and adjusted whenever your product line or competitive set changes. Tell us what changed and the discovery set changes with it.
+
+## How this shows up in answers
+
+Every response tells you what it read:
+
+```json
+"corpus": {
+  "posts_considered": 412,
+  "posts_with_history": 388,
+  "posts_trend_grade": 121,
+  "excluded_by_brand_profile": 3
+}
+```
+
+- **`posts_considered`** — how many posts this call passed over. It's also what the call is billed on; see [Credits](/credits).
+- **`posts_with_history`** — how many have more than one observation.
+- **`posts_trend_grade`** — how many have enough history to be classified beyond `watchlist`. This number rises on its own as observations accumulate, and it's the one to watch in a new workspace.
+- **`excluded_by_brand_profile`** — withheld by your exclusions, counted so the filtering is never silent.
+
+<Card title="How trending is decided" icon="chart-line" href="/measurement">
+  What Pepo does with that history once it has it.
+</Card>

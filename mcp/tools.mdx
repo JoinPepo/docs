@@ -3,7 +3,7 @@ title: "Tools"
 description: "What the assistant can do once Pepo is connected."
 ---
 
-Six tools. Deliberately few — every additional tool makes an assistant worse at picking the right one, and a short list it uses correctly beats a long list it guesses at.
+Six tools, each doing one nameable job.
 
 ## Free
 
@@ -36,7 +36,7 @@ Six tools. Deliberately few — every additional tool makes an assistant worse a
 
   Optional: `query`, `platforms`, `window`, `limit`, `min_views`, `max_cost_usd`.
 
-  Every response states what was actually searched. Today that is captions and creator handles — **not** transcripts, on-screen text, or products detected in the video. An empty result means "not found in captions," and the tool says so rather than letting an assistant report it as "no such video exists."
+  Every response states what was searched — today, captions and creator handles. An empty result means "not found in captions," and the tool says so, so an assistant never reports it as "no such video exists."
 </ResponseField>
 
 <ResponseField name="get_video" type="tool">
@@ -72,12 +72,10 @@ Cost $0.07 · balance $24.87
 
 The warnings are in the summary rather than only in the structured data, because that is the text the model actually reads. The 800k-view result sitting at `watchlist` is the system working: three hours of observation cannot show a trajectory, however large the number.
 
-## Not yet available
+## Coming next
 
-Specified and in build, absent from the tool list on purpose — a tool that fails teaches your team the product is broken:
-
-`setup_brand_profile` · `share_of_voice` · `competitor_report` · `consumer_insights` · `find_creators` · `campaign_report` · `build_dataset` · `create_monitor` · `list_monitors` · `get_job` · `export_csv`
+Share of voice, competitor and consumer intelligence, creator discovery and campaign analysis are in build on the same corpus and the same evidence rules. Ask us where they are — during the pilot we'll tell you what's close.
 
 ## Nothing here writes anywhere
 
-Every tool is read-only. Pepo will draft outreach, briefs and posts when those workflows ship, and each will go through propose → human approval → receipt. No tool sends a message, updates a CRM, or publishes anything.
+Every tool is read-only. Outreach, briefs and posts will go through propose → human approval → receipt when they ship. No tool sends a message, updates a CRM, or publishes anything.

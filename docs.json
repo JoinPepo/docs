@@ -21,11 +21,20 @@
         "groups": [
           {
             "group": "Getting started",
-            "pages": ["index", "quickstart", "authentication"]
+            "pages": [
+              "index",
+              "quickstart",
+              "authentication"
+            ]
           },
           {
             "group": "Core concepts",
-            "pages": ["brand-profile", "credits", "measurement"]
+            "pages": [
+              "corpus",
+              "brand-profile",
+              "credits",
+              "measurement"
+            ]
           }
         ]
       },
@@ -38,18 +47,40 @@
         "groups": [
           {
             "group": "Model Context Protocol",
-            "pages": ["mcp/overview", "mcp/connect", "mcp/tools", "mcp/prompts"]
+            "pages": [
+              "mcp/overview",
+              "mcp/connect",
+              "mcp/tools",
+              "mcp/prompts"
+            ]
           }
         ]
       }
     ]
   },
   "navbar": {
-    "links": [{ "label": "Support", "href": "mailto:support@pepo.ai" }],
-    "primary": { "type": "button", "label": "Get an API key", "href": "https://app.pepo.ai" }
+    "links": [
+      {
+        "label": "Support",
+        "href": "mailto:support@pepo.ai"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get an API key",
+      "href": "https://app.pepo.ai"
+    }
   },
   "contextual": {
-    "options": ["copy", "view", "claude", "chatgpt", "mcp", "cursor", "vscode"]
+    "options": [
+      "copy",
+      "view",
+      "claude",
+      "chatgpt",
+      "mcp",
+      "cursor",
+      "vscode"
+    ]
   },
   "footer": {
     "socials": {

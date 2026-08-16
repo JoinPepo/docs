@@ -1,59 +1,67 @@
 ---
 title: "Pepo"
-description: "Social intelligence for marketing teams, as an API and an MCP server."
+description: "Ask what's happening to your brand on social video, and get an answer with its evidence."
 ---
 
-Pepo answers questions about what is happening to a brand on social video — what is growing, who is talking, what consumers actually say — and returns the evidence alongside the answer.
+Pepo watches social video for your brand — your posts, your competitors', and the far larger volume of content where people discuss you without tagging you — and answers questions about it in plain language.
 
-There are two ways in, and they are for different people.
+You ask from Claude or ChatGPT. Or you call the API and build it into your own product.
+
+```
+Which of our videos is actually taking off this week —
+and is that a real trend, or one creator having a moment?
+```
+
+## What you can ask today
 
 <CardGroup cols={2}>
-  <Card title="MCP" icon="plug" href="/mcp/overview">
-    Connect Pepo to Claude or ChatGPT and ask in plain language. For marketing and insights teams. No code.
+  <Card title="What's taking off" icon="arrow-trend-up">
+    Ranked video by momentum, with the observation history behind each call — and an explicit split between one video going viral and a movement across creators.
   </Card>
-  <Card title="REST API" icon="code" href="/quickstart">
-    The same workflows over HTTP, for your own product or internal tooling.
+  <Card title="Find specific video" icon="magnifying-glass">
+    Search your corpus by product, topic or creator. Get links, engagement and captions back as a table or an export.
+  </Card>
+  <Card title="Go deep on one video" icon="film">
+    Engagement over time, comment reaction and tone, and the evidence behind any claim made about it.
+  </Card>
+  <Card title="Know the cost first" icon="calculator">
+    Price any call before you run it. Estimates match the invoice.
   </Card>
 </CardGroup>
 
-The MCP server is built on this API and has no privileged path of its own. Anything it can do, your own code can do.
-
 ## What makes the answers usable
 
-Most social tools will tell you a video has a lot of views. That is not the same as telling you something is happening, and the gap between the two is where bad decisions come from.
+**You can see what's behind every number.** A momentum score arrives with how many observations it rests on, how many hours they span, and how many comparable videos it was ranked against. When someone asks where a number came from, you can answer.
 
-<AccordionGroup>
-  <Accordion title="A score never arrives alone">
-    Every momentum score ships with the confidence behind it, how many observations it rests on, how many hours those span, and how many comparable videos it was ranked against. A number with no coverage attached is a number you cannot defend in a meeting.
-  </Accordion>
+**Size and momentum are different questions.** A video with a lot of views is a big video. Whether something is *happening* is a claim about trajectory, and Pepo scores each video against genuinely comparable ones and against the creator's own normal — so a 40k-view video from a small creator can outrank an 800k-view video from a mega-account. Usually that smaller one is the one worth acting on.
 
-  <Accordion title="Claims are gated on evidence, not on size">
-    A video is only classified as trending with at least **three metric snapshots across at least twelve hours**. Below that it is `watchlist` with a `gated_by` field explaining why — including when it has the largest view count in your corpus. One observation is not a trajectory.
-  </Accordion>
+**One video ≠ a trend.** The cluster verdict is reported separately from the ranking, so you know whether you're looking at one creator having a big week or a format multiple independent creators are picking up.
 
-  <Accordion title="Virality and trends are reported separately">
-    One video outperforming is virality. A trend needs multiple independent creators moving together, and no single creator holding more than half the cluster's views. These are different findings and they are returned as different fields.
-  </Accordion>
+**It tells you when it doesn't know.** A brand-new workspace says so rather than scoring off a single observation. That's the difference between a number you can take into a meeting and one you'll get caught on.
 
-  <Accordion title="Views are never called impressions">
-    Public video views are observed content views — potential exposures. Real ad impressions require first-party or Ads Manager data. Every response carrying view-derived numbers says so, because that sentence tends to get lost between an API and a board deck.
-  </Accordion>
+## Two ways in
 
-  <Accordion title="Missing is not zero">
-    A metric that was never observed comes back as `null` with its coverage, never as `0`. An empty corpus is reported as an empty corpus, not as a result of zero.
-  </Accordion>
-</AccordionGroup>
+<CardGroup cols={2}>
+  <Card title="From Claude or ChatGPT" icon="plug" href="/mcp/overview">
+    Connect Pepo and ask in plain language. For marketing and insights teams. No code.
+  </Card>
+  <Card title="From your own code" icon="code" href="/quickstart">
+    The same workflows over HTTP.
+  </Card>
+</CardGroup>
 
-## Where to go next
+The MCP server is built on this API and has no privileged path of its own — anything it can do, your own code can do.
+
+## Start here
 
 <CardGroup cols={3}>
-  <Card title="Quickstart" icon="rocket" href="/quickstart">
-    First call in about five minutes.
+  <Card title="Set up" icon="rocket" href="/quickstart">
+    Key to first answer.
   </Card>
-  <Card title="Brand profile" icon="fingerprint" href="/brand-profile">
-    The one setup step that decides whether results are about your brand or about your category.
+  <Card title="Where your data comes from" icon="database" href="/corpus">
+    How your corpus is built and kept current.
   </Card>
   <Card title="How trending is decided" icon="chart-line" href="/measurement">
-    The scoring, the gates, and what we refuse to claim.
+    The scoring and the evidence behind it.
   </Card>
 </CardGroup>
