@@ -1,0 +1,83 @@
+---
+title: "Tools"
+description: "What the assistant can do once Pepo is connected."
+---
+
+Six tools. Deliberately few — every additional tool makes an assistant worse at picking the right one, and a short list it uses correctly beats a long list it guesses at.
+
+## Free
+
+<ResponseField name="check_credits" type="tool">
+  Prepaid balance, mode, and the default per-call ceiling. Never meters.
+</ResponseField>
+
+<ResponseField name="estimate_cost" type="tool">
+  What a workflow call would cost, as a low/expected/high band with the assumptions behind it — including how many candidate videos would be analysed. Never meters.
+
+  Worth encouraging explicitly: *"price it before you run it."* An assistant that can see the cost proposes the affordable version first.
+</ResponseField>
+
+<ResponseField name="get_brand_profile" type="tool">
+  Your approved profile — products, competitors, category, exclusions. Returns `needs_setup` with the fix rather than an error when there is no profile yet.
+</ResponseField>
+
+## Metered
+
+<ResponseField name="find_trending" type="tool">
+  Ranked videos with momentum, classification, confidence, observation coverage, and the comparison group.
+
+  Optional: `platforms`, `window` (`24h`, `7d`, `30d`), `limit`, `min_views`, `max_cost_usd`.
+
+  Renders the **trend board** panel — a sortable table showing each score with its snapshot count and confidence underneath, and a gated row's reason spelled out in the row itself.
+</ResponseField>
+
+<ResponseField name="search_videos" type="tool">
+  Find videos by topic, product or creator.
+
+  Optional: `query`, `platforms`, `window`, `limit`, `min_views`, `max_cost_usd`.
+
+  Every response states what was actually searched. Today that is captions and creator handles — **not** transcripts, on-screen text, or products detected in the video. An empty result means "not found in captions," and the tool says so rather than letting an assistant report it as "no such video exists."
+</ResponseField>
+
+<ResponseField name="get_video" type="tool">
+  One video in full: engagement, the observation history behind any momentum claim, and a sample of comments with their tone **and the coverage of that tone**.
+
+  Renders the **video panel** — thumbnail, a views-over-time sparkline drawn only when there are at least two observations, and the tone split shown against how many comments were actually classified.
+</ResponseField>
+
+## What a result looks like
+
+Tools return a readable summary first — this is what the assistant reads and paraphrases — with the full structured payload behind it.
+
+```
+5 video(s) ranked for this workspace from 28 in the corpus.
+4 watchlist · 1 trending
+
+@breakout — 240k views · momentum 87 (trending, medium confidence, 3 snapshot(s) over 24h, vs 27 comparable)
+  https://tiktok.com/@breakout/video/…
+@thin — 800k views · momentum 87 (watchlist, low confidence, 2 snapshot(s) over 3h, vs 27 comparable)
+  https://tiktok.com/@thin/video/…
+
+Cluster verdict: viral_video (5 accelerating video(s) from 1 independent creator(s); top creator holds 77% of views).
+  A single video/creator dominates. One video outperforming is virality, not a trend.
+
+⚠ 1 result(s) could not be classified beyond watchlist for lack of observation history.
+  Do not describe those as trending.
+1 result(s) were withheld by this brand's exclusion list.
+
+Views are observed content views (potential exposures), not ad impressions.
+
+Cost $0.07 · balance $24.87
+```
+
+The warnings are in the summary rather than only in the structured data, because that is the text the model actually reads. The 800k-view result sitting at `watchlist` is the system working: three hours of observation cannot show a trajectory, however large the number.
+
+## Not yet available
+
+Specified and in build, absent from the tool list on purpose — a tool that fails teaches your team the product is broken:
+
+`setup_brand_profile` · `share_of_voice` · `competitor_report` · `consumer_insights` · `find_creators` · `campaign_report` · `build_dataset` · `create_monitor` · `list_monitors` · `get_job` · `export_csv`
+
+## Nothing here writes anywhere
+
+Every tool is read-only. Pepo will draft outreach, briefs and posts when those workflows ship, and each will go through propose → human approval → receipt. No tool sends a message, updates a CRM, or publishes anything.
