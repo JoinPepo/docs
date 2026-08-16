@@ -3,18 +3,13 @@ title: "Quickstart"
 description: "From an API key to your first scored result."
 ---
 
+import { SetupOrder } from '/snippets/diagrams.jsx'
+
 <Note>
 Pepo is in pilot. You are issued an API key and your base URL together — replace `https://api.pepo.ai` below with the URL you were given.
 </Note>
 
-```mermaid
-flowchart LR
-  K["API key"] --> B["Check balance<br/><i>free</i>"]
-  B --> P["Create brand profile<br/><i>gates everything below</i>"]
-  P --> E["Price the call<br/><i>free</i>"]
-  E --> T["Ask a question"]
-  T --> R["Answer + evidence + cost"]
-```
+<SetupOrder />
 
 ## 1. Check your balance
 
