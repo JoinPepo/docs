@@ -15,21 +15,42 @@ You need two things: the server URL and a Pepo API key.
 During the pilot you are issued your server URL alongside your key. Create keys in the Pepo dashboard under **Settings → API keys**; the plaintext is shown once.
 </Note>
 
-## Claude
+## Which client are you on?
+
+Pepo authenticates with an API key in an `Authorization` header, so any client that lets you set a header works today.
+
+| Client | Status | How |
+|---|---|---|
+| **ChatGPT desktop app** | Works | Settings → Plugins → MCPs → Add server |
+| **Claude Code** | Works | `claude mcp add` |
+| **Codex CLI** | Works | `codex mcp add` |
+| **Your own code** | Works | Any MCP SDK, or the [REST API](/api-reference/introduction) |
+| **Claude desktop app / claude.ai** | OAuth in progress | See below |
+
+## ChatGPT desktop app
 
 <Steps>
-  <Step title="Open connector settings">
-    Profile menu → **Settings** → **Connectors** → **Add custom connector**. Custom connectors require a paid Claude plan (Pro, Max or Team).
+  <Step title="Open MCP settings">
+    **Settings** → **Plugins** → the **MCPs** tab → **Add server**.
   </Step>
   <Step title="Add the server">
-    Paste the server URL and add the `Authorization` header with your key.
+    Set the URL to your Pepo server URL. Under **Headers**, add `Authorization` with the value `Bearer pk_live_…`.
+
+    There is also a **Bearer token env var** field. It reads the environment the *app* was launched with, not your shell, so a variable exported in `.zshrc` will not resolve. Paste the key into **Headers** unless you set the variable with `launchctl setenv`.
   </Step>
   <Step title="Check it worked">
-    Start a new chat and type `/` — the Pepo prompts should appear. If they do, the connection is live.
+    Ask for your credit balance in a new chat. It should call `check_credits` and report a dollar figure.
   </Step>
 </Steps>
 
-## Claude Code and other config-file clients
+## Claude Code
+
+```bash
+claude mcp add --transport http pepo https://mcp.pepo.ai/mcp \
+  --header "Authorization: Bearer pk_live_…"
+```
+
+Or in a config file:
 
 ```json
 {
@@ -43,9 +64,36 @@ During the pilot you are issued your server URL alongside your key. Create keys 
 }
 ```
 
-## ChatGPT
+<Warning>
+This is Claude **Code** configuration. The Claude **desktop app** reads a different file (`claude_desktop_config.json`) that accepts only stdio servers — pasting the block above into it makes the app report "not valid MCP server configurations and were skipped."
+</Warning>
 
-Add Pepo as a custom connector in the app's connector settings, using the same URL and bearer header.
+## Codex CLI
+
+```bash
+codex mcp add pepo --url https://mcp.pepo.ai/mcp \
+  --bearer-token-env-var PEPO_TOKEN
+```
+
+The ChatGPT desktop app reads this same config, so a server added here shows up in the app's MCPs tab and vice versa.
+
+## Claude desktop app and claude.ai
+
+Claude's **Add custom connector** dialog takes a name, a URL, and an optional OAuth Client ID and Secret. There is no field for a request header, and [Anthropic's documentation](https://support.claude.com/en/articles/11175166-about-custom-connectors-remote-mcp-servers) describes OAuth as the authentication path for remote MCP servers. A key-authenticated server cannot complete that handshake, so Pepo is not connectable there yet.
+
+We are adding an OAuth authorization server for this. Until it ships, use **Claude Code** — same tools, same server, same key.
+
+## Clients that only accept a URL
+
+Some hosts take a URL and nothing else. For those, the key can travel in the path instead of a header:
+
+```
+https://mcp.pepo.ai/k/pk_live_…/mcp
+```
+
+<Warning>
+A key in a URL is a key in a URL — it lands in proxy logs and browser history in a way a header does not. Use a `pk_test_` key where you can, keep these URLs out of shared documents, and revoke from **Settings → API keys** the moment one leaks.
+</Warning>
 
 <Warning>
 Interactive panels rely on the MCP Apps extension, and host support for it varies and is changing quickly. Where a host does not render them you still get the full answer as text and links — but if you are evaluating Pepo specifically for the in-chat panels, test them in your own host before committing.
@@ -69,6 +117,9 @@ If it fails, in order of likelihood:
   </Accordion>
   <Accordion title="No tools or prompts appear">
     The connector is registered but the handshake failed. Remove and re-add it, and confirm the URL ends in `/mcp`.
+  </Accordion>
+  <Accordion title="'Couldn't register with Pepo's sign-in service'">
+    This is the Claude desktop app attempting OAuth — see [above](#claude-desktop-app-and-claude-ai). It also appears when the URL is not reachable from the public internet, because the app registers the connector server-side rather than from your machine: a `localhost` or private-network URL will fail here even though `curl` reaches it fine from the same laptop.
   </Accordion>
   <Accordion title="Tools appear but every call errors">
     Usually an empty credit balance or a missing brand profile. Ask the assistant to check credits and to fetch the brand profile — both are free and both return the specific fix.
