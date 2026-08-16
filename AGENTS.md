@@ -53,12 +53,26 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 
 ## Diagrams
 
-Mermaid works, in fenced ```mermaid blocks. Two things learned the hard way:
+Diagrams are hand-authored SVG in `snippets/diagrams.jsx`, imported into a page as a component. **Do not use mermaid** — it renders, but it looks like tool output, which is wrong for an audience that includes marketers evaluating the product.
 
-- **Use `flowchart LR`, never `flowchart TD`.** `TD` renders as *nothing* — no error, no empty box, the block simply does not appear. `LR` renders fine and the layout engine reflows it vertically anyway, so you get a top-down reading order regardless.
-- **A malformed diagram fails silently.** There is no error in the console and no placeholder on the page. Always look at the rendered page after adding or editing one; a diagram that "looks fine in the diff" is not verified.
+Three constraints, each of which fails *silently* — no console error, no placeholder, the element just does not appear:
 
-Keep node counts low — around eight — and put detail in the prose underneath. A diagram dense enough to need zooming has stopped being a diagram.
+- **Inline `<svg>` in MDX is stripped**, in both JSX and plain-HTML attribute form. It must be a component in `snippets/`.
+- **Each diagram must be one self-contained exported component.** Helper sub-components defined in the same file are not resolved at render time.
+- **No `<foreignObject>`** — Mintlify's CDN strips it, which is also why draw.io SVG exports lose their text.
+
+Because every failure is silent, a diagram cannot be reviewed in a diff. Look at the rendered page, and confirm a label from the drawing actually appears in the DOM.
+
+### The visual language
+
+Keep new diagrams consistent with the existing ones:
+
+- **Neutral elements use `currentColor`** at low opacity (fill ~0.04, stroke ~0.14), so one drawing works on light and dark grounds with no second asset.
+- **One accent, `#4FB3A0`**, reserved for the element the diagram is actually about. The brand's `#264548` disappears on dark and `#7FD4C8` washes out on light; this mid-teal reads on both.
+- **Type runs larger than it looks.** A 720-wide viewBox displays at roughly 590px, so everything scales to ~0.82. Titles are 16, descriptions 13.5.
+- **Watch the right edge.** Text near the viewBox width clips without warning, and right-aligned text needs to stop ~20px short of a card's border or it sits flush against it.
+- **Never draw a connector behind a translucent shape.** Cards and dots sit at low fill opacity, so a line routed behind one shows straight through it. Draw connectors as segments in the gaps instead — that stays correct in both themes, where an opaque "knockout" fill would not.
+- Wrap in `<figure>` with a `<figcaption>` and give the `<svg>` `role="img"` and an `aria-label` carrying the same claim.
 
 ## Working locally
 

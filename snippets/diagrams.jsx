@@ -57,15 +57,18 @@ export const CorpusFlow = () => {
         aria-label="How a post enters your corpus: your accounts and discovery queries feed a collection run; hits are name-matched before they count; matched posts become your corpus; and each post is re-observed over time to build the metric history behind every momentum score."
         style={{ width: '100%', height: 'auto' }}
       >
-        <line
-          x1="44"
-          y1="52"
-          x2="44"
-          y2="436"
-          stroke="currentColor"
-          strokeOpacity="0.14"
-          strokeWidth="2"
-        />
+        {stages.slice(0, -1).map((s, i) => (
+          <line
+            key={`spine-${s.n}`}
+            x1="44"
+            y1={top(i) + 45}
+            x2="44"
+            y2={top(i + 1) + 15}
+            stroke="currentColor"
+            strokeOpacity="0.14"
+            strokeWidth="2"
+          />
+        ))}
         {stages.map((s, i) => (
           <g key={s.n}>
             <circle
@@ -278,7 +281,18 @@ export const SetupOrder = () => {
         aria-label="Setup order: get a key, check your balance, create your brand profile, price the call, then ask. The brand profile gates every workflow call."
         style={{ width: '100%', height: 'auto' }}
       >
-        <line x1="44" y1="46" x2="44" y2="344" stroke="currentColor" strokeOpacity="0.14" strokeWidth="2" />
+        {steps.slice(0, -1).map((s, i) => (
+          <line
+            key={`spine-${s.n}`}
+            x1="44"
+            y1={top(i) + 39}
+            x2="44"
+            y2={top(i + 1) + 9}
+            stroke="currentColor"
+            strokeOpacity="0.14"
+            strokeWidth="2"
+          />
+        ))}
         {steps.map((s, i) => (
           <g key={s.n}>
             <circle
@@ -307,7 +321,7 @@ export const SetupOrder = () => {
             <text x="118" y={top(i) + 30} fill="currentColor" fontSize="16" fontWeight={s.accent ? '600' : '500'}>
               {s.t}
             </text>
-            <text x="656" y={top(i) + 30} textAnchor="end" fill="currentColor" fillOpacity="0.55" fontSize="13">
+            <text x="634" y={top(i) + 30} textAnchor="end" fill="currentColor" fillOpacity="0.55" fontSize="13">
               {s.d}
             </text>
           </g>
