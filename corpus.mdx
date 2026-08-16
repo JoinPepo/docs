@@ -3,22 +3,14 @@ title: "Where your data comes from"
 description: "How Pepo builds and keeps your brand's video corpus."
 ---
 
+import { CorpusFlow } from '/snippets/diagrams.jsx'
+
 Your **corpus** is the set of social video Pepo holds for your brand: the posts, their creators, their captions, their comments, and a running history of how their engagement moved. Everything Pepo answers is answered from it.
 
 It is built for you, from two directions at once.
 
-```mermaid
-flowchart LR
-  OA["Your own accounts"] --> RUN["Collection run"]
-  DQ["Discovery queries from your brand profile"] --> RUN
-  RUN --> MT["Name match: is it really about your brand?"]
-  MT -->|no| DROP["Discarded"]
-  MT -->|yes| CORP["Your corpus: posts, creators, comments"]
-  CORP --> RE["Re-observed over time: 4h, then 8h, then daily"]
-  RE --> HIST["Metric history"]
-  HIST --> ANS["Your answers"]
-  CORP --> ANS
-```
+<CorpusFlow />
+
 ## Two discovery paths
 
 <CardGroup cols={2}>

@@ -3,25 +3,15 @@ title: "How trending is decided"
 description: "The scoring, the evidence gates, and what Pepo refuses to claim."
 ---
 
+import { TrendingDecision } from '/snippets/diagrams.jsx'
+
 A video is not trending because it has a lot of views. Views measure size; trending is a claim about a **trajectory**, and a trajectory needs more than one observation.
 
 This page is the method, in full. It's public because you should be able to check it — a score you can't interrogate is a score you can't defend when someone asks.
 
-```mermaid
-flowchart LR
-  V["One video"] --> OBS{"3+ observations<br/>across 12+ hours?"}
-  OBS -->|no| WL["watchlist<br/><i>gated_by explains why</i>"]
-  OBS -->|yes| DEC{"Growth slowing<br/>or falling?"}
-  DEC -->|yes| PF["peaked / fading"]
-  DEC -->|no| SC["Score against the<br/>comparison group"]
-  SC --> BR{"90+ · top 2%<br/>3x own baseline<br/>still accelerating?"}
-  BR -->|yes| BO["breakout"]
-  BR -->|no| TR{"80+ · top 10%<br/>1.5x own baseline<br/>growing each step?"}
-  TR -->|yes| TN["trending"]
-  TR -->|no| WL2["watchlist"]
-```
+<TrendingDecision />
 
-The gate comes first, and it is the part most often misread: a video is held at `watchlist` for lack of observation **regardless of how high it scores**, and regardless of how many views it has.
+This is the part most often misread: a video is held at `watchlist` for lack of observation **regardless of how high it scores**, and regardless of how many views it has.
 
 ## The comparison group
 
