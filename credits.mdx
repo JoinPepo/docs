@@ -110,6 +110,24 @@ Nothing is charged on a `402`. No work was started.
 
 ## Reconciliation
 
+```mermaid
+sequenceDiagram
+  participant You
+  participant Pepo
+  participant Balance
+  You->>Pepo: POST /v1/trending
+  Pepo->>Pepo: count posts this call will read
+  Pepo->>Balance: hold the estimate
+  alt not enough credit
+    Balance-->>You: 402 + cheaper alternatives<br/>nothing charged
+  else
+    Pepo->>Pepo: do the work
+    Pepo->>Balance: settle actual, refund the rest
+    Balance-->>You: results + usage
+  end
+```
+
+
 Reserve, work, settle: the estimate is held against your balance before work begins and the unspent part is refunded when the call completes. Two consequences worth knowing:
 
 - Two large concurrent calls cannot both pass a balance check and jointly overdraw — the second is refused.

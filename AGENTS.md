@@ -51,6 +51,15 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 
 **Numbers and prices need a source.** Do not invent rate limits, prices, or SLAs. If a figure is not in `openapi.json` or the internal contract, leave it out and flag it.
 
+## Diagrams
+
+Mermaid works, in fenced ```mermaid blocks. Two things learned the hard way:
+
+- **Use `flowchart LR`, never `flowchart TD`.** `TD` renders as *nothing* — no error, no empty box, the block simply does not appear. `LR` renders fine and the layout engine reflows it vertically anyway, so you get a top-down reading order regardless.
+- **A malformed diagram fails silently.** There is no error in the console and no placeholder on the page. Always look at the rendered page after adding or editing one; a diagram that "looks fine in the diff" is not verified.
+
+Keep node counts low — around eight — and put detail in the prose underneath. A diagram dense enough to need zooming has stopped being a diagram.
+
 ## Working locally
 
 ```bash
