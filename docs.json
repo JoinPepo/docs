@@ -12,7 +12,7 @@
   "logo": {
     "light": "/logo/light.svg",
     "dark": "/logo/dark.svg",
-    "href": "https://pepo.ai"
+    "href": "https://joinpepo.com"
   },
   "navigation": {
     "tabs": [
@@ -68,7 +68,7 @@
     "primary": {
       "type": "button",
       "label": "Get an API key",
-      "href": "https://app.pepo.ai"
+      "href": "https://app.joinpepo.com"
     }
   },
   "contextual": {
@@ -84,7 +84,7 @@
   },
   "footer": {
     "socials": {
-      "website": "https://pepo.ai"
+      "website": "https://joinpepo.com"
     }
   }
 }

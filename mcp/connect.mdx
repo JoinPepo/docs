@@ -7,7 +7,7 @@ You need two things: the server URL and a Pepo API key.
 
 | | |
 |---|---|
-| **Server URL** | `https://mcp.pepo.ai/mcp` |
+| **Server URL** | `https://mcp.joinpepo.com/mcp` |
 | **Transport** | Streamable HTTP |
 | **Auth** | `Authorization: Bearer pk_live_…` |
 
@@ -46,7 +46,7 @@ Pepo authenticates with an API key in an `Authorization` header, so any client t
 ## Claude Code
 
 ```bash
-claude mcp add --transport http pepo https://mcp.pepo.ai/mcp \
+claude mcp add --transport http pepo https://mcp.joinpepo.com/mcp \
   --header "Authorization: Bearer pk_live_…"
 ```
 
@@ -57,7 +57,7 @@ Or in a config file:
   "mcpServers": {
     "pepo": {
       "type": "http",
-      "url": "https://mcp.pepo.ai/mcp",
+      "url": "https://mcp.joinpepo.com/mcp",
       "headers": { "Authorization": "Bearer pk_live_…" }
     }
   }
@@ -71,7 +71,7 @@ This is Claude **Code** configuration. The Claude **desktop app** reads a differ
 ## Codex CLI
 
 ```bash
-codex mcp add pepo --url https://mcp.pepo.ai/mcp \
+codex mcp add pepo --url https://mcp.joinpepo.com/mcp \
   --bearer-token-env-var PEPO_TOKEN
 ```
 

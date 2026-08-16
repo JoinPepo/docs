@@ -7,16 +7,16 @@
     "description": "Search, score and explain what is happening to a brand on social video.\n\nThis spec documents **only endpoints that are live today**. Workflows still in build (share of voice, competitor and consumer intelligence, creator discovery, campaign analysis, verified datasets, monitors) are deliberately absent rather than documented ahead of themselves \u2014 a documented endpoint that 404s costs more trust than a short reference.\n\nTwo properties run through every response and are worth reading before the endpoint list:\n\n1. **Reliability travels in the payload.** Scores ship with the confidence, observation coverage and comparison group behind them, and with `floors_met` stating whether the evidence bar for the claim was actually cleared. The primary consumer of this API is a language model, and a model handed a bare number will restate it as a fact.\n2. **Refusals are results.** When the evidence does not support a claim, the API says so in a field rather than returning a confident number. A video with two observations is `watchlist` with a `gated_by` explanation, no matter how large its view count.",
     "contact": {
       "name": "Pepo",
-      "url": "https://pepo.ai"
+      "url": "https://joinpepo.com"
     },
     "license": {
       "name": "Proprietary \u2014 Pepo terms of service",
-      "url": "https://pepo.ai/terms"
+      "url": "https://joinpepo.com/terms"
     }
   },
   "servers": [
     {
-      "url": "https://api.pepo.ai",
+      "url": "https://api.joinpepo.com",
       "description": "Production. Pilot customers are issued their base URL alongside their API key."
     }
   ],
@@ -740,7 +740,7 @@
                 "balance_usd": 4.934,
                 "suggestions": [
                   "Reduce `limit` from 50 to 20 (estimated $4.82).",
-                  "Add credits at https://app.pepo.ai/settings/billing"
+                  "Add credits at https://app.joinpepo.com/settings/billing"
                 ]
               }
             }
