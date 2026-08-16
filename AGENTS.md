@@ -69,6 +69,8 @@ Keep new diagrams consistent with the existing ones:
 
 - **Neutral elements use `currentColor`** at low opacity (fill ~0.04, stroke ~0.14), so one drawing works on light and dark grounds with no second asset.
 - **One accent, `#4FB3A0`**, reserved for the element the diagram is actually about. The brand's `#264548` disappears on dark and `#7FD4C8` washes out on light; this mid-teal reads on both.
+- **SVG text does not wrap, and nothing warns you when it overflows.** It runs straight through borders, arrows and neighbouring shapes, then off the canvas. Budget roughly 6px per character at 13px: a 470-wide card holds about 70 characters, a 156-wide one holds about 18. If a label does not fit, widen the card or shorten the label — never assume it will wrap.
+- **Prefer wide stacked cards to narrow side-by-side ones.** Four cards across a 720 viewBox leaves no room to say anything, which is how the credits diagram ended up with its descriptions overlapping the arrows.
 - **Type runs larger than it looks.** A 720-wide viewBox displays at roughly 590px, so everything scales to ~0.82. Titles are 16, descriptions 13.5.
 - **Watch the right edge.** Text near the viewBox width clips without warning, and right-aligned text needs to stop ~20px short of a card's border or it sits flush against it.
 - **Never draw a connector behind a translucent shape.** Cards and dots sit at low fill opacity, so a line routed behind one shows straight through it. Draw connectors as segments in the gaps instead — that stays correct in both themes, where an opaque "knockout" fill would not.
