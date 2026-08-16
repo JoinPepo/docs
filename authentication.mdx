@@ -1,0 +1,65 @@
+---
+title: "Authentication"
+description: "Workspace-scoped API keys, and why no endpoint takes a tenant id."
+---
+
+Every request carries a workspace-scoped API key as a bearer token.
+
+```bash
+curl https://api.pepo.ai/v1/credits \
+  -H "Authorization: Bearer pk_live_…"
+```
+
+If your host cannot set `Authorization`, `X-Api-Key: pk_live_…` is accepted as an alternative.
+
+## Key types
+
+| Prefix | Behaviour |
+|---|---|
+| `pk_live_` | Production. Reads your real corpus and meters real credits. |
+| `pk_test_` | Sandbox. Returns fixture data and meters nothing — safe for a client's tool-discovery probing, CI, and demos. |
+
+Keys are created in the Pepo dashboard by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
+
+Revoking is immediate and leaves the key's usage history intact, so an audit of what a key did survives its revocation.
+
+## The workspace comes from the key
+
+No endpoint accepts a brand, tenant, or workspace identifier, and none will.
+
+This is not a convenience decision. The primary consumer of this API is a language model assembling request bodies from a conversation, and a conversation can contain text placed there by someone other than your user — a video caption, a comment, a competitor's post. A tenant identifier that a model can be talked into changing is a cross-tenant data leak with a plausible-looking cause. Deriving the workspace from the credential removes the class of bug rather than mitigating it.
+
+The practical consequence: one key, one workspace. An agency covering four brands holds four keys.
+
+<Note>
+Sending a `brand_id` in a request body is not an error — it is ignored. The response will always describe the workspace the key belongs to.
+</Note>
+
+## Failure is deliberately uninformative
+
+Missing, malformed, revoked, and never-existed keys all return the same `401`:
+
+```json
+{
+  "error": {
+    "type": "invalid_key",
+    "message": "Missing or invalid API key.",
+    "request_id": "req_…"
+  }
+}
+```
+
+A probing client learns nothing from the difference between them, which is the point.
+
+## Rotating a key
+
+1. Create the replacement in the dashboard.
+2. Deploy it.
+3. Confirm traffic on the new key via **Last used** in the dashboard.
+4. Revoke the old one.
+
+Both keys work during the overlap, so there is no window where a scheduled job fails.
+
+## OAuth
+
+Bearer keys are what ships today. OAuth 2.1 with dynamic client registration is planned for the MCP connector path, which is what turns "paste your key into the connector settings" into a one-click **Add to Claude** with real per-user revocation. Until then, treat an MCP connector key as a shared workspace credential.

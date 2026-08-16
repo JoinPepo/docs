@@ -1,0 +1,112 @@
+---
+title: "Credits and cost"
+description: "Prepaid balance, per-call ceilings, and reading the meter from inside an agent."
+---
+
+Pepo bills against a prepaid dollar balance. There is no subscription and no seat count; you load credits and calls draw them down.
+
+Two guardrails, not one, because a balance alone does not stop a single call from consuming all of it.
+
+<CardGroup cols={2}>
+  <Card title="Balance" icon="wallet">
+    A call whose estimate exceeds your remaining balance is refused **before any work starts**, and nothing is charged.
+  </Card>
+  <Card title="Per-call ceiling" icon="gauge">
+    Every metered endpoint takes `max_cost_usd`, with a server default when you omit it. Work stops at the ceiling and returns partial results rather than overrunning.
+  </Card>
+</CardGroup>
+
+## Reading the meter
+
+You cannot see a dashboard from inside a chat client, so the meter travels with the payload. Every metered response carries headers and a `usage` block:
+
+```http
+X-Pepo-Cost-Usd: 0.0660
+X-Pepo-Balance-Usd: 19.9340
+X-Pepo-Request-Id: req_a16f58106b2a4b90a9a1c64e90858e3c
+```
+
+```json
+"usage": {
+  "cost_usd": 0.066,
+  "balance_usd": 19.934,
+  "billed": [
+    { "unit": "search_request",  "quantity": 1,  "unit_cost_usd": 0.01,  "cost_usd": 0.01 },
+    { "unit": "content_enriched", "quantity": 28, "unit_cost_usd": 0.002, "cost_usd": 0.056 }
+  ],
+  "truncated": false
+}
+```
+
+`truncated: true` means the call hit its ceiling. The results are partial and that is not an error — reduce scope or raise `max_cost_usd`.
+
+## Billing units
+
+Billed on the unit the underlying cost actually tracks, so what you pay does not depend on how you phrase a question.
+
+| Unit | What it counts |
+|---|---|
+| `search_request` | One candidate-retrieval call |
+| `video_analyzed` | One video through the analysis pipeline — the dominant cost |
+| `content_enriched` | One comment thread or review page enriched |
+| `monitor_snapshot` | One scheduled observation |
+| `dataset_row_verified` | One verified row in a dataset build |
+
+### The multiplier worth knowing about
+
+Finding 25 videos worth showing you means looking at roughly 200. Building a 500-row verified dataset means examining several thousand candidates. **You are billed against the candidates, not the results.**
+
+That ratio is disclosed up front in every estimate as `assumes.candidates_analyzed`, and again after the fact in `usage.billed`. It is the single most common source of invoice surprise in this category of product, which is why it appears twice.
+
+## Estimate first
+
+`POST /v1/estimate` is free and returns a band with its assumptions:
+
+```json
+{
+  "estimate": {
+    "cost_usd": { "low": 3.02, "expected": 6.02, "high": 12.02 },
+    "assumes": { "videos_returned": 25, "candidates_analyzed": 200 },
+    "balance_usd": 20.0,
+    "affordable": true
+  }
+}
+```
+
+A band rather than a number because the dominant driver — how many candidates must be analysed to find N qualifying results — is not knowable until the search runs.
+
+<Tip>
+If you are driving Pepo from an agent, make `estimate` available to it. An agent that can price its own plan proposes the affordable version first, instead of discovering the ceiling by hitting it.
+</Tip>
+
+## Running out
+
+A refused call returns `402` and carries a way forward:
+
+```json
+{
+  "error": {
+    "type": "insufficient_credits",
+    "message": "This request is estimated at $5.00 and the workspace balance is $4.93.",
+    "estimated_cost_usd": 5.0,
+    "balance_usd": 4.934,
+    "suggestions": [
+      "Reduce `limit` from 50 to 20 (estimated $4.82).",
+      "Add credits at https://app.pepo.ai/settings/billing"
+    ]
+  }
+}
+```
+
+`suggestions` is computed against your actual balance — the first entry is the largest version of your request that still fits. An error that says only "no" ends an agent's task; one that carries an affordable plan lets it continue.
+
+Nothing is charged on a `402`. No work was started.
+
+## Reconciliation
+
+Reserve, work, settle: the estimate is held against your balance before work begins and the unspent part is refunded when the call completes. Two consequences worth knowing:
+
+- Two large concurrent calls cannot both pass a balance check and jointly overdraw — the second is refused.
+- Your balance may dip during a long call and recover when it settles. `GET /v1/credits` mid-flight can read lower than the eventual charge.
+
+You are never billed above the ceiling you were quoted. Actual cost is clamped to the reservation, and any shortfall is reported as `truncated`.

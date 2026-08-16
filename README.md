@@ -1,55 +1,37 @@
-# Mintlify Starter Kit
+# Pepo docs
 
-Use the starter kit to get your docs deployed and ready to customize.
+Public documentation for [Pepo](https://pepo.ai) — the REST API and the MCP server. Built on [Mintlify](https://mintlify.com); content is MDX in this repo, so moving to another host later is a port rather than a rewrite.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## Layout
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
-
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
-
-```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+| | |
+|---|---|
+| `openapi.json` | The API contract. Drives the **API reference** tab, its playground, and any future SDK generation. |
+| `index.mdx`, `quickstart.mdx`, `authentication.mdx` | Getting started. |
+| `brand-profile.mdx`, `credits.mdx`, `measurement.mdx` | Core concepts. `measurement.mdx` is the method behind trending — the refusals are the product, so they are public. |
+| `mcp/*.mdx` | Using Pepo from Claude and ChatGPT. |
+| `docs.json` | Navigation, theme, branding. |
+| `AGENTS.md` | Conventions for anyone — human or agent — editing this repo. Read it first. |
 
 ## Development
 
-Install the [Mintlify CLI](https://www.npmjs.com/package/mint) to preview your documentation changes locally. To install, use the following command:
-
-```
-npm i -g mint
-```
-
-Run the following command at the root of your documentation, where your `docs.json` is located:
-
-```
-mint dev
+```bash
+npm i -g mint        # or use npx mint@latest below
+mint dev             # preview on http://localhost:3000
+mint broken-links    # run before every PR
+npx @redocly/cli@latest lint openapi.json
 ```
 
-View your local preview at `http://localhost:3000`.
+If a page 404s, check you are running in the folder containing `docs.json`. If the dev server misbehaves, `mint update`.
 
-## Publishing changes
+## Publishing
 
-Install our GitHub app from your [dashboard](https://dashboard.mintlify.com/settings/organization/github-app) to propagate changes from your repo to your deployment. Changes are deployed to production automatically after pushing to the default branch.
+The Mintlify GitHub app deploys automatically on push to the default branch. Install it from the [dashboard](https://dashboard.mintlify.com/settings/organization/github-app).
 
-## Need help?
+## Two rules
 
-### Troubleshooting
+**1. Document only what is live.** This site covers the endpoints and MCP tools that actually work today. Workflows still in build — share of voice, competitor and consumer intelligence, creator discovery, campaign analysis, datasets, monitors — are deliberately absent. A documented endpoint that 404s costs more trust than a short reference.
 
-- If your dev environment isn't running: Run `mint update` to ensure you have the most recent version of the CLI.
-- If a page loads as a 404: Make sure you are running in a folder with a valid `docs.json`.
+**2. Keep `openapi.json` in step with the API.** It is generated from, and must match, the live response shapes in `pepo-marketing` (`convex/http.ts`). When a response shape changes, change the spec in the same piece of work — customers generate clients from it.
 
-### Resources
-- [Mintlify documentation](https://mintlify.com/docs)
+Full conventions, including the caveats that must never be edited away, are in [`AGENTS.md`](./AGENTS.md).

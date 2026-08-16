@@ -1,0 +1,56 @@
+---
+title: "Prompts"
+description: "Ready-made workflows, so nobody has to read documentation to get started."
+---
+
+Prompts are the part of MCP that most servers skip. They are user-controlled templates your host surfaces as slash commands, a command palette, or buttons — so the moment Pepo is connected, your team can see what it does without opening this site.
+
+In Claude, type `/` in a new chat.
+
+## The five
+
+<ResponseField name="/pepo-setup-brand" type="brand_name, website">
+  Builds the brand profile every other workflow reads. Start here.
+
+  It checks for an existing profile first, drafts products, competitors, category, audiences and exclusions, then **asks you to confirm before saving**. It asks about exclusions directly, because that is the field people leave empty and later wish they had not.
+</ResponseField>
+
+<ResponseField name="/pepo-trending" type="window, platforms, limit">
+  What is growing, with the evidence.
+
+  Prices the call first, then reports results under explicit rules: only call something trending if its classification says so, always give the confidence and snapshot count with a score, and keep the cluster verdict separate from the ranking. Ends by asking which one is worth acting on this week.
+</ResponseField>
+
+<ResponseField name="/pepo-search" type="query, platforms, window">
+  Find specific videos by topic, product or creator.
+
+  Carries the search-coverage caveat into the answer, so a nil result comes back as "nothing matched in captions" rather than "there are no such videos" — the difference matters if you are about to tell someone a topic has no coverage.
+</ResponseField>
+
+<ResponseField name="/pepo-video-deep-dive" type="video_id">
+  Everything about one video: how engagement moved across the observed snapshots, what the comments say, and what to take from it.
+
+  Requires tone to be reported with its coverage. "Mostly positive" over three classified comments is a fabrication with a true-sounding shape.
+</ResponseField>
+
+<ResponseField name="/pepo-credits" type="">
+  Balance, per-call ceiling, and roughly how many runs that supports at your current settings. Free.
+</ResponseField>
+
+## Why these are worded the way they are
+
+Each prompt states the honesty constraints **before** the assistant sees any data, so it inherits them rather than being corrected afterwards. `/pepo-trending` includes, verbatim:
+
+> Only call something trending if its `classification` says so. A result with `gated_by` set has too little observation history to support the claim — say "watchlist" and say why.
+
+> "Momentum 87" on its own is not a finding.
+
+Instructions given up front shape how a model reads results. The same warning added after the fact usually does not survive summarisation into a two-line answer, which is exactly the form these findings reach a VP in.
+
+## Writing your own
+
+Prompts are a convenience, not a gate — you can ask for anything in plain language. Two habits make the answers better:
+
+**Ask for the evidence explicitly.** *"…and tell me how many snapshots each one is based on"* costs nothing and changes what gets repeated onward.
+
+**Say what the answer is for.** *"I'm presenting this to our CMO on Thursday"* gets you the coverage caveats and the source links unprompted, because the assistant can tell the claim will be challenged.

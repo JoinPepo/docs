@@ -1,0 +1,41 @@
+---
+title: "Pepo in Claude and ChatGPT"
+description: "Connect Pepo as an MCP server and ask in plain language."
+---
+
+Pepo runs as a [Model Context Protocol](https://modelcontextprotocol.io) server, so you can ask about your brand's social performance inside Claude or ChatGPT without leaving the tool your team already uses.
+
+```
+Which of our videos is actually taking off this week, and is it a trend or just one creator?
+```
+
+The assistant calls Pepo, gets ranked results with the evidence behind them, and answers — with links you can open and a cost line you can see.
+
+## What connecting gives you
+
+<CardGroup cols={2}>
+  <Card title="Tools" icon="wrench" href="/mcp/tools">
+    Six things the assistant can do: check credits, price a call, read your brand profile, find trending video, search the corpus, and open one video in full.
+  </Card>
+  <Card title="Prompts" icon="list-check" href="/mcp/prompts">
+    Five ready-made workflows your host shows as slash commands or buttons, so nobody has to read documentation to get started.
+  </Card>
+</CardGroup>
+
+Two of the tools also render an interactive panel in the conversation — a sortable trend board and a single-video view with its observation history — using the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview). Where a host does not support that, the same information comes back as text and links. Nothing depends on the panel rendering.
+
+## The design, in three rules
+
+**Answers carry their own caveats.** Tool results state the confidence, the snapshot count, and whether a claim cleared its evidence bar — in the text the model reads first, not only in the structured payload. A result that has too little history to be called trending says so in a line the assistant will repeat.
+
+**Errors carry a way forward.** Out of credits returns the largest version of your request that still fits your balance. No brand profile returns the setup path. An error that says only "no" ends the conversation.
+
+**Volume returns links, not media.** At 25 or 1,000 videos nobody wants embedded players. One video under discussion gets a rendered panel; everything else is a table you can sort or a CSV you can take away.
+
+## What it costs
+
+The MCP server bills exactly like the API — same prepaid balance, same per-call ceilings. `check_credits` and `estimate_cost` are free and the assistant is told to use them before anything expensive, so you can see the price before agreeing to it.
+
+<Card title="Connect it" icon="plug" href="/mcp/connect">
+  Setup takes about two minutes.
+</Card>

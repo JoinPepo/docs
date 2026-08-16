@@ -1,0 +1,84 @@
+---
+title: "Connect Pepo"
+description: "Add the Pepo MCP server to Claude, ChatGPT, or any MCP client."
+---
+
+You need two things: the server URL and a Pepo API key.
+
+| | |
+|---|---|
+| **Server URL** | `https://mcp.pepo.ai/mcp` |
+| **Transport** | Streamable HTTP |
+| **Auth** | `Authorization: Bearer pk_live_…` |
+
+<Note>
+During the pilot you are issued your server URL alongside your key. Create keys in the Pepo dashboard under **Settings → API keys**; the plaintext is shown once.
+</Note>
+
+## Claude
+
+<Steps>
+  <Step title="Open connector settings">
+    Profile menu → **Settings** → **Connectors** → **Add custom connector**. Custom connectors require a paid Claude plan (Pro, Max or Team).
+  </Step>
+  <Step title="Add the server">
+    Paste the server URL and add the `Authorization` header with your key.
+  </Step>
+  <Step title="Check it worked">
+    Start a new chat and type `/` — the Pepo prompts should appear. If they do, the connection is live.
+  </Step>
+</Steps>
+
+## Claude Code and other config-file clients
+
+```json
+{
+  "mcpServers": {
+    "pepo": {
+      "type": "http",
+      "url": "https://mcp.pepo.ai/mcp",
+      "headers": { "Authorization": "Bearer pk_live_…" }
+    }
+  }
+}
+```
+
+## ChatGPT
+
+Add Pepo as a custom connector in the app's connector settings, using the same URL and bearer header.
+
+<Warning>
+Interactive panels rely on the MCP Apps extension, and host support for it varies and is changing quickly. Where a host does not render them you still get the full answer as text and links — but if you are evaluating Pepo specifically for the in-chat panels, test them in your own host before committing.
+</Warning>
+
+## Verify the connection
+
+Ask the assistant:
+
+```
+Check my Pepo credit balance.
+```
+
+It should call `check_credits` and report a dollar figure. That call is free, so it costs nothing to confirm.
+
+If it fails, in order of likelihood:
+
+<AccordionGroup>
+  <Accordion title="401 or 'missing API key'">
+    The `Authorization` header is not reaching the server. Confirm it is set as a header, that the value begins with `Bearer `, and that the key has not been revoked in the dashboard.
+  </Accordion>
+  <Accordion title="No tools or prompts appear">
+    The connector is registered but the handshake failed. Remove and re-add it, and confirm the URL ends in `/mcp`.
+  </Accordion>
+  <Accordion title="Tools appear but every call errors">
+    Usually an empty credit balance or a missing brand profile. Ask the assistant to check credits and to fetch the brand profile — both are free and both return the specific fix.
+  </Accordion>
+</AccordionGroup>
+
+## Test mode
+
+A `pk_test_` key returns fixture data and never meters. Use it while wiring up a client, in CI, and for demos — a host's tool-discovery probing then costs nothing.
+
+## One key, one workspace
+
+The workspace is derived from the key, and no tool accepts a brand identifier. If you cover several brands, add one connector per brand and name them accordingly (`pepo-kiss`, `pepo-bubble`) so it is obvious in the conversation which one is being asked.
