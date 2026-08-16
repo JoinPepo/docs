@@ -201,93 +201,37 @@ export const TrendingDecision = () => (
 
 // ---------------------------------------------------------------------------
 
-/** Why a balance can dip mid-call and recover. */
+/**
+ * Why a balance can dip mid-call and recover.
+ *
+ * Vertical wide cards rather than a horizontal strip: SVG text does not wrap,
+ * and four side-by-side cards leave roughly 18 characters each, which is not
+ * enough to say anything. An earlier horizontal version overflowed its cards
+ * into the arrows and off the canvas.
+ */
 export const CreditLifecycle = () => {
   const steps = [
-    { t: 'Estimate', d: 'Counts the posts your call will read' },
-    { t: 'Hold', d: 'Reserves that amount before any work' },
-    { t: 'Work', d: 'Runs, stopping at your ceiling' },
-    { t: 'Settle', d: 'Charges actual, refunds the rest' },
+    { n: '1', t: 'Estimate', d: 'Counts the posts your call will read' },
+    { n: '2', t: 'Hold', d: 'Reserves that amount before any work starts', accent: true },
+    { n: '3', t: 'Work', d: 'Runs, stopping at your cost ceiling' },
+    { n: '4', t: 'Settle', d: 'Charges the actual cost, refunds the rest' },
   ]
+  const top = (i) => 10 + i * 84
   return (
     <figure style={{ margin: '1.75rem 0' }}>
       <svg
-        viewBox="0 0 720 250"
+        viewBox="0 0 720 384"
         role="img"
         aria-label="A call is estimated, the estimate is held against your balance, the work runs, and settlement charges the actual cost and refunds the difference. If the hold exceeds your balance the call is refused and nothing is charged."
-        style={{ width: '100%', height: 'auto' }}
-      >
-        {steps.map((s, i) => (
-          <g key={s.t}>
-            <rect
-              x={8 + i * 180}
-              y="40"
-              width="156"
-              height="76"
-              rx="12"
-              fill={i === 1 ? '#4FB3A0' : 'currentColor'}
-              fillOpacity={i === 1 ? 0.1 : 0.04}
-              stroke={i === 1 ? '#4FB3A0' : 'currentColor'}
-              strokeOpacity={i === 1 ? 0.5 : 0.14}
-            />
-            <text x={28 + i * 180} y="70" fill="currentColor" fontSize="16" fontWeight="600">
-              {s.t}
-            </text>
-            <text x={28 + i * 180} y="92" fill="currentColor" fillOpacity="0.6" fontSize="12.5">
-              {s.d.length > 30 ? s.d.slice(0, 30) : s.d}
-            </text>
-            {i < 3 && (
-              <g>
-                <path d={`M ${168 + i * 180} 78 h 16`} stroke="currentColor" strokeOpacity="0.3" fill="none" />
-                <path d={`M ${186 + i * 180} 78 l -8 -4.5 v 9 z`} fill="currentColor" fillOpacity="0.3" />
-              </g>
-            )}
-          </g>
-        ))}
-        <path d="M 96 128 v 34 h 300" stroke="currentColor" strokeOpacity="0.28" strokeDasharray="4 3" fill="none" />
-        <path d="M 398 162 l -9 -5 v 10 z" fill="currentColor" fillOpacity="0.28" />
-        <rect x="410" y="140" width="300" height="46" rx="11" fill="currentColor" fillOpacity="0.04" stroke="currentColor" strokeOpacity="0.16" strokeDasharray="4 3" />
-        <text x="430" y="169" fill="currentColor" fillOpacity="0.7" fontSize="14">
-          Not enough credit → refused, nothing charged
-        </text>
-        <text x="8" y="220" fill="currentColor" fillOpacity="0.5" fontSize="12.5">
-          Because the hold happens first, a balance read mid-call can be lower than the eventual charge.
-        </text>
-      </svg>
-      <figcaption style={{ fontSize: '0.8125rem', opacity: 0.6, marginTop: '0.5rem' }}>
-        Reserve, work, settle. You are never billed above the ceiling you were quoted.
-      </figcaption>
-    </figure>
-  )
-}
-
-// ---------------------------------------------------------------------------
-
-/** Setup order, with the step that gates everything below it marked. */
-export const SetupOrder = () => {
-  const steps = [
-    { n: '1', t: 'Get a key', d: 'Issued with your base URL' },
-    { n: '2', t: 'Check your balance', d: 'Free — confirms the key works' },
-    { n: '3', t: 'Create your brand profile', d: 'Every workflow reads it', accent: true },
-    { n: '4', t: 'Price the call', d: 'Free — the estimate matches the invoice' },
-    { n: '5', t: 'Ask', d: 'Answer, evidence and cost come back together' },
-  ]
-  const top = (i) => 10 + i * 74
-  return (
-    <figure style={{ margin: '1.75rem 0' }}>
-      <svg
-        viewBox="0 0 720 380"
-        role="img"
-        aria-label="Setup order: get a key, check your balance, create your brand profile, price the call, then ask. The brand profile gates every workflow call."
         style={{ width: '100%', height: 'auto' }}
       >
         {steps.slice(0, -1).map((s, i) => (
           <line
             key={`spine-${s.n}`}
             x1="44"
-            y1={top(i) + 39}
+            y1={top(i) + 43}
             x2="44"
-            y2={top(i + 1) + 9}
+            y2={top(i + 1) + 13}
             stroke="currentColor"
             strokeOpacity="0.14"
             strokeWidth="2"
@@ -297,39 +241,49 @@ export const SetupOrder = () => {
           <g key={s.n}>
             <circle
               cx="44"
-              cy={top(i) + 24}
+              cy={top(i) + 28}
               r="13"
               fill={s.accent ? '#4FB3A0' : 'currentColor'}
               fillOpacity={s.accent ? 0.18 : 0.07}
               stroke={s.accent ? '#4FB3A0' : 'currentColor'}
               strokeOpacity={s.accent ? 0.6 : 0.22}
             />
-            <text x="44" y={top(i) + 29} textAnchor="middle" fill="currentColor" fillOpacity="0.75" fontSize="12">
+            <text x="44" y={top(i) + 33} textAnchor="middle" fill="currentColor" fillOpacity="0.75" fontSize="12">
               {s.n}
             </text>
             <rect
               x="96"
               y={top(i)}
-              width="560"
-              height="48"
+              width="470"
+              height="56"
               rx="12"
               fill={s.accent ? '#4FB3A0' : 'currentColor'}
               fillOpacity={s.accent ? 0.1 : 0.04}
               stroke={s.accent ? '#4FB3A0' : 'currentColor'}
               strokeOpacity={s.accent ? 0.5 : 0.14}
             />
-            <text x="118" y={top(i) + 30} fill="currentColor" fontSize="16" fontWeight={s.accent ? '600' : '500'}>
+            <text x="118" y={top(i) + 25} fill="currentColor" fontSize="16" fontWeight="600">
               {s.t}
             </text>
-            <text x="634" y={top(i) + 30} textAnchor="end" fill="currentColor" fillOpacity="0.55" fontSize="13">
+            <text x="118" y={top(i) + 43} fill="currentColor" fillOpacity="0.62" fontSize="13">
               {s.d}
             </text>
           </g>
         ))}
+        {/* the refusal branch hangs off Hold, the step that can reject */}
+        <path d={`M 570 ${top(1) + 28} h 22`} stroke="currentColor" strokeOpacity="0.28" strokeDasharray="4 3" fill="none" />
+        <text x="600" y={top(1) + 24} fill="currentColor" fillOpacity="0.6" fontSize="12.5">
+          refused
+        </text>
+        <text x="600" y={top(1) + 40} fill="currentColor" fillOpacity="0.45" fontSize="12.5">
+          nothing charged
+        </text>
+        <text x="96" y="366" fill="currentColor" fillOpacity="0.5" fontSize="13">
+          The hold happens first, so a balance read mid-call can read low.
+        </text>
       </svg>
       <figcaption style={{ fontSize: '0.8125rem', opacity: 0.6, marginTop: '0.5rem' }}>
-        Step 3 gates everything below it — workflow calls are refused until a
-        brand profile exists.
+        You are never billed above the ceiling you were quoted.
       </figcaption>
     </figure>
   )
