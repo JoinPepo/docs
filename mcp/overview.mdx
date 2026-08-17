@@ -15,14 +15,14 @@ The assistant calls Pepo, gets ranked results with the evidence behind them, and
 
 <CardGroup cols={2}>
   <Card title="Tools" icon="wrench" href="/mcp/tools">
-    Six things the assistant can do: check credits, price a call, read your brand profile, find trending video, search the corpus, and open one video in full.
+    Fourteen things the assistant can do: check credits and price a call, find trending video, search the corpus, open one video in full, and run share of voice, competitor, product, creator and campaign analysis over your own data.
   </Card>
   <Card title="Prompts" icon="list-check" href="/mcp/prompts">
     Five ready-made workflows your host shows as slash commands or buttons, so nobody has to read documentation to get started.
   </Card>
 </CardGroup>
 
-Two of the tools also render an interactive panel in the conversation — a sortable trend board and a single-video view with its observation history — using the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview). Where a host does not support that, the same information comes back as text and links. Nothing depends on the panel rendering.
+Eight of the tools also render an interactive panel in the conversation — trend board, video, share of voice, competitor, product, creators, campaign and dataset — using the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview). Where a host does not support that, the same information comes back as text and links. Nothing depends on the panel rendering.
 
 ## The design, in three rules
 
@@ -36,6 +36,11 @@ Two of the tools also render an interactive panel in the conversation — a sort
 
 The MCP server bills exactly like the API — same prepaid balance, same per-call ceilings. `check_credits` and `estimate_cost` are free and the assistant is told to use them before anything expensive, so you can see the price before agreeing to it.
 
-<Card title="Connect it" icon="plug" href="/mcp/connect">
-  Setup takes about two minutes.
-</Card>
+<CardGroup cols={2}>
+  <Card title="Try it in five minutes" icon="play" href="/demo">
+    A public demo key and a sample brand, so you can see the answers before you have a workspace.
+  </Card>
+  <Card title="Connect it" icon="plug" href="/mcp/connect">
+    Setup takes about two minutes.
+  </Card>
+</CardGroup>

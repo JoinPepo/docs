@@ -1,0 +1,151 @@
+---
+title: "Try it in five minutes"
+description: "A public demo key, a sample brand, and a script that shows what the product actually does."
+---
+
+You do not need a workspace, a credit card, or a sales call to see what Pepo answers with.
+
+| | |
+|---|---|
+| **Key** | `pk_test_10bea6c5bf8d39ef8f835b95b5861499` |
+| **MCP** | `https://mcp.joinpepo.com/mcp` |
+| **REST** | `https://api.joinpepo.com` |
+
+This key is in `demo` mode: it **never meters**, **never collects**, and is **read-only**, so it is safe to share and cannot be used to change the workspace it showcases or run up a bill. Every response it returns carries `demo: true` and says in words that the data is a sample.
+
+<Note>
+The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indicate mode. See [Authentication](/authentication).
+</Note>
+
+## Install
+
+<Tabs>
+  <Tab title="Claude Code">
+    ```bash
+    claude mcp add --transport http pepo https://mcp.joinpepo.com/mcp \
+      --header "Authorization: Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499"
+    ```
+
+    `claude mcp list` should report `pepo: … ✔ Connected`.
+  </Tab>
+  <Tab title="Cursor">
+    Open this link — Cursor's install-link scheme takes the whole config:
+
+    ```
+    cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0XzEwYmVhNmM1YmY4ZDM5ZWY4ZjgzNWI5NWI1ODYxNDk5In19
+    ```
+  </Tab>
+  <Tab title="VS Code">
+    ```
+    https://vscode.dev/redirect/mcp/install?name=pepo&config=%7B%22name%22%3A%20%22pepo%22%2C%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22https%3A%2F%2Fmcp.joinpepo.com%2Fmcp%22%2C%22headers%22%3A%20%7B%22Authorization%22%3A%20%22Bearer%20pk_test_10bea6c5bf8d39ef8f835b95b5861499%22%7D%7D
+    ```
+  </Tab>
+  <Tab title="ChatGPT">
+    There is **no install link** for ChatGPT — OpenAI does not publish a URL scheme for custom connectors, so it has to go through the UI.
+
+    <Steps>
+      <Step title="Enable developer mode">
+        **Settings → Apps → Advanced → Developer mode.**
+      </Step>
+      <Step title="Create the connector">
+        **Settings → Connectors → Create.** URL `https://mcp.joinpepo.com/mcp`, transport **Streamable HTTP**, authentication **none**.
+      </Step>
+      <Step title="Add the key as a header">
+        `Authorization` = `Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499`.
+      </Step>
+    </Steps>
+  </Tab>
+  <Tab title="Claude app">
+    No install link here either. **Settings → Connectors → Add custom connector**, and use the key-in-URL form, because the dialog has no field for a header:
+
+    ```
+    https://mcp.joinpepo.com/k/pk_test_10bea6c5bf8d39ef8f835b95b5861499/mcp
+    ```
+
+    See [Connect](/mcp/connect#claude-desktop-app-and-claude-ai) for why that form is needed.
+  </Tab>
+  <Tab title="curl">
+    ```bash
+    curl -s https://api.joinpepo.com/v1/share-of-voice \
+      -H "Authorization: Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499" \
+      -H 'content-type: application/json' \
+      -d '{"window":"7d"}'
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+The Cursor and VS Code links are built to each vendor's documented install-link scheme and their payloads decode correctly, but they have not been clicked on a machine with those editors installed. The Claude Code command has been run end to end.
+</Note>
+
+## The demo script
+
+Seven prompts. Ask them in order — each shows something the last one did not, and **most of them include the product declining to answer part of what was asked**, which is the part worth watching.
+
+<Steps>
+  <Step title="It uses the corpus, not the web">
+    > What is trending in our category right now?
+
+    Note what did *not* happen: no web search, no general trend piece. The answer is about the videos this workspace collected, and every ranked video carries the observation count behind its score. Nothing is called *trending* on too few snapshots, however large its view count.
+  </Step>
+  <Step title="Views are not impressions">
+    > How does our share of voice compare with competitors this week?
+
+    Watch for the refusal to use the word *impressions*. Views are observed content views; an impression is an ad-delivery event, and a media agency prices budget against the difference. Posts naming both you and a competitor are counted for neither side.
+  </Step>
+  <Step title="A number it will not stand behind">
+    > Which competitor gained the most ground in the last 7 days?
+
+    On this corpus the answer is *"do not read this as market movement"* — the two periods were not observed to comparable depth, so the change measures the collection rather than the market. It then tells you **which window would work**, so the next question is a re-run rather than a dead end.
+
+    > Try it again with the window it suggested.
+  </Step>
+  <Step title="Two mentions are not a finding">
+    > Any complaints about the Glow Serum I should escalate to product?
+
+    This shows the evidence floor working in **both** directions. Some themes clear it and come back as findings, each with its source count, its distinct-**voice** count and verbatim quotes. Others do not, and those come back in a separate list that is deliberately **not chartable**.
+
+    The distinction to point at: several comments from one account is one person, so a theme needs three distinct sources **and** two distinct voices before Pepo will call it a finding. Ranking an unestablished theme beside an established one on the same bar chart is exactly the mistake the split exists to prevent.
+  </Step>
+  <Step title="Rank order will mislead you">
+    > Which creators should we send product to?
+
+    The highest median views in the roster belongs to a creator whose evidence level is only `provisional` — too few posts for the number to mean much, with one breakout doing the work. Watch it surface the steadier `measured` creators underneath, and watch what it says about safety: no creator matched an exclusion term, and that is **not** a clearance.
+  </Step>
+  <Step title="Paid versus organic, refused">
+    > How did our launch perform, and how much of the lift was paid?
+
+    It splits owned versus not-owned and refuses to split paid from earned, because nothing in a social corpus records whether a post was promoted, boosted, gifted or contracted. It also refuses to call any of it *lift* — there is no control group.
+  </Step>
+  <Step title="What is wrong with the data">
+    > What videos do we actually have, and what is wrong with them?
+
+    Gaps, duplicates, coverage, and a verification block that distinguishes *complete* from *confirmed*: fields are present and ids are unique, but nothing has been re-checked against the platform since collection — so an empty gap list is not a clean bill of health.
+  </Step>
+</Steps>
+
+## What you are looking at
+
+The sample workspace is a skincare brand with competitors, products and a connected owned channel. It is **not a real customer** — the brand is named "Lumi Beauty (Pepo demo — sample data)" for that reason, and every response repeats it.
+
+Two limits worth knowing before you judge the output:
+
+- **The corpus is small**, a few hundred videos over a few days. Several flows refuse to draw conclusions at that size, which is correct behaviour and also means you see the refusals more often than a real workspace would.
+- **Demo keys cannot collect.** Collection calls a paid provider, so the sample corpus is fixed rather than growing on your request. Everything else works exactly as it does on a metered key.
+
+The demo corpus is refreshed, so exactly which themes clear the evidence floor changes between runs. The *shape* of the answer — some established, some explicitly not, and the boundary shown rather than hidden — is the thing to look at.
+
+## Then what
+
+`POST /v1/estimate` prices any call before you make it. On a demo key the usage block reports `metered_usd` — what the call *would* have cost — while charging nothing, so you can see real pricing without being billed. That is the number to look at if you are working out whether this is affordable at your volume.
+
+Demo keys are rate limited to 30 requests a minute, since the key is public.
+
+<CardGroup cols={2}>
+  <Card title="Full endpoint reference" icon="code" href="/api-reference/account/get-credit-balance">
+    All twelve endpoints, with schemas and a live playground.
+  </Card>
+  <Card title="Connect your own workspace" icon="plug" href="/mcp/connect">
+    When you want it pointed at your own brand.
+  </Card>
+</CardGroup>

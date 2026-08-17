@@ -4,19 +4,19 @@
     "title": "Pepo API",
     "version": "1.0.0",
     "summary": "Social intelligence for marketing teams, as an API and an MCP server.",
-    "description": "Search, score and explain what is happening to a brand on social video.\n\nThis spec documents **only endpoints that are live today**. Workflows still in build (share of voice, competitor and consumer intelligence, creator discovery, campaign analysis, verified datasets, monitors) are deliberately absent rather than documented ahead of themselves \u2014 a documented endpoint that 404s costs more trust than a short reference.\n\nTwo properties run through every response and are worth reading before the endpoint list:\n\n1. **Reliability travels in the payload.** Scores ship with the confidence, observation coverage and comparison group behind them, and with `floors_met` stating whether the evidence bar for the claim was actually cleared. The primary consumer of this API is a language model, and a model handed a bare number will restate it as a fact.\n2. **Refusals are results.** When the evidence does not support a claim, the API says so in a field rather than returning a confident number. A video with two observations is `watchlist` with a `gated_by` explanation, no matter how large its view count.",
+    "description": "Search, score and explain what is happening to a brand on social video.\n\nThis spec documents **only endpoints that are live today**. Anything specified but not shipped is deliberately absent rather than documented ahead of itself — a documented endpoint that 404s costs more trust than a short reference.\n\nTwo properties run through every response and are worth reading before the endpoint list:\n\n1. **Reliability travels in the payload.** Scores ship with the confidence, observation coverage and comparison group behind them, and with `floors_met` stating whether the evidence bar for the claim was actually cleared. The primary consumer of this API is a language model, and a model handed a bare number will restate it as a fact.\n2. **Refusals are results.** When the evidence does not support a claim, the API says so in a field rather than returning a confident number. A video with two observations is `watchlist` with a `gated_by` explanation, no matter how large its view count.",
     "contact": {
       "name": "Pepo",
-      "url": "https://pepo.ai"
+      "url": "https://joinpepo.com"
     },
     "license": {
-      "name": "Proprietary \u2014 Pepo terms of service",
-      "url": "https://pepo.ai/terms"
+      "name": "Proprietary — Pepo terms of service",
+      "url": "https://joinpepo.com/terms"
     }
   },
   "servers": [
     {
-      "url": "https://api.pepo.ai",
+      "url": "https://api.joinpepo.com",
       "description": "Production. Pilot customers are issued their base URL alongside their API key."
     }
   ],
@@ -40,7 +40,7 @@
       "get": {
         "operationId": "getCredits",
         "summary": "Get credit balance",
-        "description": "Current prepaid balance for the workspace the key belongs to, and the default per-call cost ceiling. Free \u2014 this endpoint never meters.",
+        "description": "Current prepaid balance for the workspace the key belongs to, and the default per-call cost ceiling. Free — this endpoint never meters.",
         "tags": [
           "Account"
         ],
@@ -90,7 +90,7 @@
       "post": {
         "operationId": "estimateCost",
         "summary": "Estimate the cost of a call",
-        "description": "What a workflow call would cost, as a low/expected/high band with the assumptions behind it \u2014 including how many candidate videos would be analysed to return the number of results requested.\n\nFree, and deliberately prominent. An agent that can price its own plan proposes the affordable version first, which turns the per-call ceiling into something the caller cooperates with rather than collides with.",
+        "description": "What a workflow call would cost, as a low/expected/high band with the assumptions behind it — including how many candidate videos would be analysed to return the number of results requested.\n\nFree, and deliberately prominent. An agent that can price its own plan proposes the affordable version first, which turns the per-call ceiling into something the caller cooperates with rather than collides with.",
         "tags": [
           "Account"
         ],
@@ -190,7 +190,7 @@
                         },
                         "assumes": {
                           "type": "object",
-                          "description": "Notably `posts_considered` \u2014 how many posts the call will read. That is what the price tracks, and what the invoice bills.",
+                          "description": "Notably `posts_considered` — how many posts the call will read. That is what the price tracks, and what the invoice bills.",
                           "additionalProperties": {
                             "type": "number"
                           },
@@ -226,7 +226,7 @@
       "get": {
         "operationId": "getBrandProfile",
         "summary": "Get the brand profile",
-        "description": "The approved brand profile for this workspace \u2014 products, competitors, category, audiences, and the topics the brand refuses to be associated with. Every workflow reads it, so results are generic category noise until it exists.\n\nA workspace without one gets `200` with `status: \"needs_setup\"` and the path to fix it, **not** a `404`. The empty state is the onboarding, and a caller that receives an error on its first call abandons the task.",
+        "description": "The approved brand profile for this workspace — products, competitors, category, audiences, and the topics the brand refuses to be associated with. Every workflow reads it, so results are generic category noise until it exists.\n\nA workspace without one gets `200` with `status: \"needs_setup\"` and the path to fix it, **not** a `404`. The empty state is the onboarding, and a caller that receives an error on its first call abandons the task.",
         "tags": [
           "Account"
         ],
@@ -294,7 +294,7 @@
       "post": {
         "operationId": "setBrandProfile",
         "summary": "Create or replace the brand profile",
-        "description": "Saves the profile and makes it active immediately. Every workflow result from then on records its version in `brand_profile_version`.\n\nCall this before any workflow \u2014 they return `409 profile_required` until a profile exists, because results without one would be category noise rather than answers about your brand.\n\nReplacing a profile creates a new version rather than mutating the old one; previous versions are retained.",
+        "description": "Saves the profile and makes it active immediately. Every workflow result from then on records its version in `brand_profile_version`.\n\nCall this before any workflow — they return `409 profile_required` until a profile exists, because results without one would be category noise rather than answers about your brand.\n\nReplacing a profile creates a new version rather than mutating the old one; previous versions are retained.",
         "tags": [
           "Account"
         ],
@@ -313,7 +313,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Required. Include spelling variants and nicknames \u2014 consumers rarely write your brand the way your style guide does.",
+                    "description": "Required. Include spelling variants and nicknames — consumers rarely write your brand the way your style guide does.",
                     "example": [
                       "KISS",
                       "KISS Nails"
@@ -441,7 +441,7 @@
       "post": {
         "operationId": "findTrending",
         "summary": "Find trending videos",
-        "description": "Ranked videos with a momentum score, a classification, and the evidence behind both.\n\n**A video is not trending because it has many views.** Each result is ranked as a percentile within a comparison group (same platform, comparable creators) and against the creator's own baseline, and a classification above `watchlist` requires at least **3 metric snapshots across at least 12 hours**. Anything thinner is capped at `watchlist` with `gated_by` explaining why \u2014 including videos with very large view counts.\n\nThe trend-level verdict is reported separately from the per-video ranking, because one video outperforming is virality, not a movement.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "Ranked videos with a momentum score, a classification, and the evidence behind both.\n\n**A video is not trending because it has many views.** Each result is ranked as a percentile within a comparison group (same platform, comparable creators) and against the creator's own baseline, and a classification above `watchlist` requires at least **3 metric snapshots across at least 12 hours**. Anything thinner is capped at `watchlist` with `gated_by` explaining why — including videos with very large view counts.\n\nThe trend-level verdict is reported separately from the per-video ranking, because one video outperforming is virality, not a movement.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -466,7 +466,7 @@
                   "window": {
                     "type": "string",
                     "pattern": "^\\d+[hd]$",
-                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus.",
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 — it is never silently widened to the whole corpus.",
                     "example": "7d"
                   },
                   "limit": {
@@ -539,11 +539,425 @@
         }
       }
     },
+    "/v1/share-of-voice": {
+      "post": {
+        "operationId": "shareOfVoice",
+        "summary": "Compare share of voice against competitors",
+        "description": "Share of observed views between this brand and its configured competitors, over the corpus already collected.\n\n**This is not ad impressions.** Views are observed content views; an impression is an ad-delivery event. The two are not interchangeable and this response must never be presented as impression share.\n\n**Check `reliable` before quoting a percentage.** A corpus collected by searching for your own brand cannot measure your share of it — you dominate it by construction. The endpoint derives how the corpus was gathered from the collection runs behind it (`corpus_origin`) and refuses to endorse a split it cannot support, returning the numbers alongside the reason they should not be quoted.\n\nOrganic and paid activity are not separated: nothing in the corpus records whether a post was promoted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Omit for every platform in the corpus.",
+                    "example": [
+                      "tiktok",
+                      "instagram"
+                    ]
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back to look, e.g. `7d`, `30d`.",
+                    "example": "7d"
+                  },
+                  "max_cost_usd": {
+                    "type": "number",
+                    "description": "Hard ceiling for this call."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The split, and whether it can be quoted.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareOfVoiceResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/v1/competitors/report": {
+      "post": {
+        "operationId": "competitorReport",
+        "summary": "Report on what a competitor changed",
+        "description": "What changed for a competitor between the last two equal-length periods, decomposed into the creators, videos or platforms that caused it, with an annotated attention timeline naming the videos behind each peak.\n\n**The breakdown reconciles or it is not shown.** A waterfall's whole visual claim is \"here is the change, and here is what it was made of\", so the parts must sum to the whole exactly — including after truncation, which produces an explicit remainder row rather than dropping the tail. `reconciles` is computed, not assumed.\n\n**Check `comparable` first.** A period-over-period comparison across an unevenly collected corpus measures the collection, not the market: a competitor 'gaining' between two windows may only mean we searched harder the second time.\n\nComparative product and SKU bars are **not available** — the profile holds no competitor SKUs and nothing resolves a caption to a competitor's product line, so ranking them would mean inventing the categories. This is stated in `unavailable` rather than omitted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "competitor": {
+                    "type": "string",
+                    "description": "Which competitor. Omit for the one with the most video in the window."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "Length of EACH period. The prior period of equal length is the baseline.",
+                    "example": "7d"
+                  },
+                  "dimension": {
+                    "type": "string",
+                    "enum": [
+                      "creator",
+                      "video",
+                      "platform"
+                    ],
+                    "description": "How to break down the change. Defaults to creator."
+                  },
+                  "max_cost_usd": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What changed, what caused it, and whether it can be read as movement.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CompetitorReportResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/v1/products/insights": {
+      "post": {
+        "operationId": "productInsights",
+        "summary": "What people say about a product or SKU",
+        "description": "Purchase drivers, complaints, needs and use cases for this brand's products, drawn from the captions and comments of posts that name a product.\n\n**A theme mentioned twice is not a finding.** Themes below three distinct sources are returned in `seen_not_established` rather than in `findings` — visible and countable, but never rankable. A two-mention theme rendered as a bar reads as a product problem, and that is the specific mistake this split exists to prevent.\n\n**Quotes are verbatim.** Every finding carries the exact text and the id it came from, because a finding whose evidence is a paraphrase cannot be checked.\n\n**Count voices, not mentions.** Five comments from one account is one person; `voices` is reported alongside `sources` so a single loud detractor cannot become \"a widely reported issue\".\n\nThemes are multi-label — \"love the texture but it broke me out\" is a driver and a complaint — so counts deliberately do not sum to `sources_considered`.\n\nReddit, reviews and timestamped video evidence are **absent, not thin**, and say so in `unavailable`.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sku": {
+                    "type": "string",
+                    "description": "Narrow to one product. Omit for all configured products."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "example": "7d"
+                  },
+                  "max_cost_usd": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Themes with their evidence, and what was not established.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProductInsightsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/v1/creators/discover": {
+      "post": {
+        "operationId": "discoverCreators",
+        "summary": "Find creators for a product, topic or audience",
+        "description": "Creators in this brand's corpus with median views, median engagement, best post, consistency, the competitors they also post about, and brand-safety flags.\n\n**Medians, not averages.** One 486K video against nine 3K videos averages to 51K, which describes none of the ten and flatters the creator enormously. `bestViews` is reported alongside so a one-hit creator is visible as one.\n\n**A creator with one post is not ranked.** One post has no median and no dispersion; those creators come back in `single_post_creators`, present and countable but never comparable with the ranked list.\n\n**Post count is a fact about our search.** Creators are here because their posts matched what was collected, so `postsInCorpus` is never their output.\n\n**A brand-safety flag is a hit, never a clearance.** Screening is keyword-based over captions only — it cannot see video content, audio, or posts outside this corpus. Zero flags means nothing matched, not that a creator is safe, and `safety_statement` must travel with any safety claim.\n\nFollower counts, demographics and audience overlap are not collected, so nothing here says whether a creator's audience is yours. Observed views are not reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sku": {
+                    "type": "string",
+                    "description": "Creators who posted about this product. Must be a product name from the profile, not the brand name."
+                  },
+                  "topic": {
+                    "type": "string",
+                    "description": "Creators whose captions mention this term."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "example": "7d"
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  },
+                  "max_cost_usd": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Ranked creators, those seen once, and what was not screened.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatorDiscoveryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
+    "/v1/campaigns/analyze": {
+      "post": {
+        "operationId": "analyzeCampaign",
+        "summary": "Measure social response to a campaign or launch",
+        "description": "What happened around a campaign or product launch: an annotated timeline, a reconciling contribution waterfall by SKU, creator, video or platform, and an ownership split — over equal-length windows either side of the launch.\n\n**This is not paid-owned-earned; it is owned versus not-owned.** Owned is derivable, because a post from a connected account is the brand's. Paid versus earned is not derivable from anything: a sponsored creator post and an organic fan post are identical in this corpus. Caption-based `#ad` detection was considered and rejected — disclosure is inconsistent, and treating its absence as evidence of organic reach would be worse than having no split. Two buckets that are true beat three where one is invented.\n\n**It is not causal.** There is no control group and no counterfactual. Anything rising for an unrelated reason rises here too, so this describes what happened around the launch, not what the launch caused.\n\n**Response by market is unavailable** — posts carry no country, region or language. The markets on the brand profile describe who the brand sells to, not where a viewer was.\n\nEqual-length windows are used on both sides deliberately: comparing \"since launch\" against \"everything before\" makes the lift depend on how far back the corpus happens to reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "launch_at": {
+                    "type": "integer",
+                    "description": "Launch time, unix ms. Defaults to one window ago."
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "Length of EACH side of the launch.",
+                    "example": "7d"
+                  },
+                  "sku": {
+                    "type": "string"
+                  },
+                  "term": {
+                    "type": "string",
+                    "description": "Narrow to captions containing this term, e.g. a campaign hashtag."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "dimension": {
+                    "type": "string",
+                    "enum": [
+                      "sku",
+                      "creator",
+                      "video",
+                      "platform"
+                    ]
+                  },
+                  "max_cost_usd": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "What moved around the launch, and what cannot be said about it.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CampaignReportResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          }
+        }
+      }
+    },
     "/v1/search/videos": {
       "post": {
         "operationId": "searchVideos",
         "summary": "Search the video corpus",
-        "description": "Find videos in this workspace's corpus by topic, product or creator.\n\n**Read `search_method` on every response.** Today this searches stored captions and creator handles only. Transcripts, on-screen text, detected products and logos, and audio are not in the corpus yet, so an empty result means *not found in captions* \u2014 never *no such video exists*. That distinction matters if you are about to report that a topic has no coverage.\n\nCosts credits.",
+        "description": "Find videos in this workspace's corpus by topic, product or creator.\n\n**Read `search_method` on every response.** Today this searches stored captions and creator handles only. Transcripts, on-screen text, detected products and logos, and audio are not in the corpus yet, so an empty result means *not found in captions* — never *no such video exists*. That distinction matters if you are about to report that a topic has no coverage.\n\nCosts credits.",
         "tags": [
           "Discovery"
         ],
@@ -568,7 +982,7 @@
                     "type": "string",
                     "example": "7d",
                     "pattern": "^\\d+[hd]$",
-                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus."
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 — it is never silently widened to the whole corpus."
                   },
                   "limit": {
                     "type": "integer",
@@ -669,11 +1083,94 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "No video with that id in this workspace. Returned identically for an id that does not exist and one belonging to another workspace \u2014 the difference would be an existence oracle across tenants.",
+            "description": "No video with that id in this workspace. Returned identically for an id that does not exist and one belonging to another workspace — the difference would be an existence oracle across tenants.",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/records": {
+      "get": {
+        "operationId": "listRecords",
+        "tags": [
+          "Discovery"
+        ],
+        "summary": "Page the collected dataset",
+        "description": "Cursor-paged records with a quality assessment. Unmetered: these rows were already paid for at collection, and charging to read them would make careful paging the expensive option. `format=csv` returns text/csv.",
+        "parameters": [
+          {
+            "name": "cursor",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Opaque; pass back what the previous page returned."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "maximum": 500
+            }
+          },
+          {
+            "name": "platforms",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Comma-separated."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "json",
+                "csv"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "records": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "next_cursor": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "has_more": {
+                      "type": "boolean"
+                    },
+                    "quality": {
+                      "type": "object",
+                      "description": "Row count, platform mix, duplicates, per-field gaps with their consequence, real time span, stated limitations, a verification block distinguishing 'complete' from 'confirmed', and stacked composition. `composition.unavailable` names the axes with no data behind them (market has no geography anywhere in the corpus; category is a single brand-level value, so its bar would be one segment at 100%) — report those as unavailable rather than as empty."
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -687,7 +1184,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "A workspace-scoped API key: `Authorization: Bearer pk_live_\u2026`.\n\nThe workspace is derived from the key. **No endpoint accepts a brand or tenant identifier**, and none ever will \u2014 an identifier that travels through a language model is a cross-tenant leak waiting for a prompt injection. `X-Api-Key` is accepted as an alternative header for hosts that cannot set `Authorization`."
+        "description": "A workspace-scoped API key: `Authorization: Bearer pk_live_…`.\n\nThe workspace is derived from the key. **No endpoint accepts a brand or tenant identifier**, and none ever will — an identifier that travels through a language model is a cross-tenant leak waiting for a prompt injection. `X-Api-Key` is accepted as an alternative header for hosts that cannot set `Authorization`."
       }
     },
     "headers": {
@@ -725,7 +1222,7 @@
         }
       },
       "InsufficientCredits": {
-        "description": "The request would exceed the workspace balance, so no work was started and nothing was charged. The error carries cheaper plans that do fit \u2014 an error that says only \"no\" ends an agent's task.",
+        "description": "The request would exceed the workspace balance, so no work was started and nothing was charged. The error carries cheaper plans that do fit — an error that says only \"no\" ends an agent's task.",
         "content": {
           "application/json": {
             "schema": {
@@ -740,7 +1237,7 @@
                 "balance_usd": 4.934,
                 "suggestions": [
                   "Reduce `limit` from 50 to 20 (estimated $4.82).",
-                  "Add credits at https://app.pepo.ai/settings/billing"
+                  "Add credits at https://app.joinpepo.com/settings/billing"
                 ]
               }
             }
@@ -758,7 +1255,7 @@
               "error": {
                 "type": "profile_required",
                 "message": "This workspace has no approved brand profile.",
-                "request_id": "req_\u2026",
+                "request_id": "req_…",
                 "next": {
                   "endpoint": "POST /v1/brand-profile/propose",
                   "required_fields": [
@@ -782,7 +1279,7 @@
               "error": {
                 "type": "invalid_request",
                 "message": "Could not parse window \"7dd\". Use a number followed by h or d, e.g. \"24h\" or \"7d\".",
-                "request_id": "req_\u2026",
+                "request_id": "req_…",
                 "field": "window"
               }
             }
@@ -978,7 +1475,7 @@
               "null"
             ],
             "description": "Present when the classification was capped below what the score alone would suggest. **Do not describe a gated result as trending.**",
-            "example": "Capped at watchlist: 2 snapshot(s) over 3h \u2014 \"trending\" requires at least 3 across 12h."
+            "example": "Capped at watchlist: 2 snapshot(s) over 3h — \"trending\" requires at least 3 across 12h."
           },
           "components": {
             "type": "object",
@@ -1186,7 +1683,7 @@
               "string",
               "null"
             ],
-            "description": "A plain-language statement when the corpus cannot support the question asked \u2014 an empty corpus, no metric history, or too little history to classify anything. Pass it on verbatim.",
+            "description": "A plain-language statement when the corpus cannot support the question asked — an empty corpus, no metric history, or too little history to classify anything. Pass it on verbatim.",
             "example": "No metric history exists yet for this workspace, so nothing can be scored for momentum."
           },
           "brand_profile_version": {
@@ -1206,6 +1703,230 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "adoption": {
+            "type": "object",
+            "description": "How many distinct creators adopted this over time. A view count says how far a few videos travelled; adoption says whether anything spread. A creator is counted once, at their first post, so a prolific account is one adopter rather than a movement.",
+            "properties": {
+              "bucket_hours": {
+                "type": "integer",
+                "description": "Bucket width. Fixed per window so two analyses of the same window are comparable."
+              },
+              "creators": {
+                "type": "integer",
+                "description": "Distinct creators across the window."
+              },
+              "videos": {
+                "type": "integer"
+              },
+              "top_creator_share": {
+                "type": "number",
+                "description": "Share of videos from the single busiest creator, 0-1. Travels with the series so a rising line cannot be quoted without it."
+              },
+              "summary": {
+                "type": "string",
+                "description": "One-line reading of the curve, safe to restate verbatim."
+              },
+              "buckets": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "t": {
+                      "type": "integer",
+                      "description": "Bucket start, unix ms."
+                    },
+                    "videos": {
+                      "type": "integer"
+                    },
+                    "new_creators": {
+                      "type": "integer",
+                      "description": "Creators posting for the first time in this bucket — the adopters."
+                    },
+                    "cumulative_creators": {
+                      "type": "integer"
+                    },
+                    "cumulative_videos": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "axes": {
+            "type": "object",
+            "description": "Comparative bars for hooks, formats and topics. An axis is null when too little of the corpus could be classified.",
+            "properties": {
+              "hooks": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "videos": {
+                          "type": "integer"
+                        },
+                        "medianViews": {
+                          "type": "integer",
+                          "description": "Median views for this bucket. The most common bucket is routinely the worst performing, so a count alone answers the wrong question."
+                        },
+                        "share": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "unclassified": {
+                    "type": "integer",
+                    "description": "Videos this axis could not classify. Reported rather than hidden."
+                  },
+                  "classifiedShare": {
+                    "type": "number"
+                  }
+                }
+              },
+              "formats": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "videos": {
+                          "type": "integer"
+                        },
+                        "medianViews": {
+                          "type": "integer",
+                          "description": "Median views for this bucket. The most common bucket is routinely the worst performing, so a count alone answers the wrong question."
+                        },
+                        "share": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "unclassified": {
+                    "type": "integer",
+                    "description": "Videos this axis could not classify. Reported rather than hidden."
+                  },
+                  "classifiedShare": {
+                    "type": "number"
+                  }
+                }
+              },
+              "topics": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "bars": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "label": {
+                          "type": "string"
+                        },
+                        "videos": {
+                          "type": "integer"
+                        },
+                        "medianViews": {
+                          "type": "integer",
+                          "description": "Median views for this bucket. The most common bucket is routinely the worst performing, so a count alone answers the wrong question."
+                        },
+                        "share": {
+                          "type": "number"
+                        }
+                      }
+                    }
+                  },
+                  "unclassified": {
+                    "type": "integer",
+                    "description": "Videos this axis could not classify. Reported rather than hidden."
+                  },
+                  "classifiedShare": {
+                    "type": "number"
+                  }
+                }
+              },
+              "withheld": {
+                "type": "array",
+                "description": "Axes not returned, each with the reason. Includes 'sounds', which no collected field supports.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "axis": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "actions": {
+            "type": "object",
+            "description": "Next steps, with arguments pre-filled. Actions that are not implemented appear in `unavailable` with a reason — never offered, never silently omitted.",
+            "properties": {
+              "available": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "tool": {
+                      "type": "string"
+                    },
+                    "args": {
+                      "type": "object",
+                      "description": "Pass straight through to the named tool."
+                    }
+                  }
+                }
+              },
+              "unavailable": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "Why it cannot be offered. Shown so a gap is explained rather than discovered."
+                    }
+                  }
+                }
+              }
+            }
           }
         },
         "required": [
@@ -1328,7 +2049,7 @@
           },
           "history": {
             "type": "object",
-            "description": "The observation series behind any momentum claim about this video \u2014 the evidence, not the conclusion.",
+            "description": "The observation series behind any momentum claim about this video — the evidence, not the conclusion.",
             "properties": {
               "snapshots": {
                 "type": "array",
@@ -1393,7 +2114,7 @@
                       },
                       "unknown": {
                         "type": "integer",
-                        "description": "Comments carrying no classification. Never folded into `neutral` \u2014 guessing would inflate the coverage number, which is the one figure meant to be trustworthy."
+                        "description": "Comments carrying no classification. Never folded into `neutral` — guessing would inflate the coverage number, which is the one figure meant to be trustworthy."
                       }
                     }
                   },
@@ -1561,7 +2282,7 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "Topics this brand refuses to be associated with. Enforced server-side in every workflow \u2014 matching results are withheld and counted in `corpus.excluded_by_brand_profile`."
+                "description": "Topics this brand refuses to be associated with. Enforced server-side in every workflow — matching results are withheld and counted in `corpus.excluded_by_brand_profile`."
               }
             }
           }
@@ -1717,6 +2438,1255 @@
                 "description": "Which parameter was malformed."
               }
             }
+          }
+        }
+      },
+      "SovEntity": {
+        "type": "object",
+        "required": [
+          "name",
+          "videos",
+          "views",
+          "view_share"
+        ],
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "videos": {
+            "type": "integer"
+          },
+          "views": {
+            "type": "integer"
+          },
+          "view_share": {
+            "type": "number",
+            "description": "Share of ATTRIBUTED views, not of the whole corpus."
+          },
+          "video_share": {
+            "type": "number"
+          }
+        }
+      },
+      "ShareOfVoiceResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "reliable",
+          "caveats",
+          "corpus_origin",
+          "corpus_origin_because",
+          "setup_gaps",
+          "entities",
+          "comparisons",
+          "unattributed",
+          "by_platform",
+          "window_hours",
+          "posts_considered",
+          "excluded_by_brand_profile",
+          "disclaimer",
+          "usage"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "One line a client can restate. Leads with the refusal when the split is not quotable."
+          },
+          "reliable": {
+            "type": "boolean",
+            "description": "**Check this before quoting any percentage.** False means the corpus cannot support a share of voice at all — most often because it was collected by searching for this brand, which makes the brand's dominance an artefact of the search rather than a fact about the market. Report `caveats` instead of the split."
+          },
+          "caveats": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "corpus_origin": {
+            "type": "string",
+            "enum": [
+              "brand",
+              "category",
+              "unknown"
+            ],
+            "description": "How the corpus was gathered, derived from the collection runs behind it rather than supplied by the caller."
+          },
+          "corpus_origin_because": {
+            "type": "string"
+          },
+          "setup_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Configuration problems (no brand names, no competitors) that prevent a share of voice. Distinct from a data problem — the fix is different."
+          },
+          "entities": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SovEntity"
+            }
+          },
+          "comparisons": {
+            "type": "object",
+            "required": [
+              "videos",
+              "views"
+            ],
+            "properties": {
+              "videos": {
+                "type": "integer"
+              },
+              "views": {
+                "type": "integer"
+              }
+            },
+            "description": "Videos naming both the brand and a competitor. Counted for neither side."
+          },
+          "unattributed": {
+            "type": "object",
+            "required": [
+              "videos",
+              "views",
+              "share"
+            ],
+            "properties": {
+              "videos": {
+                "type": "integer"
+              },
+              "views": {
+                "type": "integer"
+              },
+              "share": {
+                "type": "number"
+              }
+            },
+            "description": "Videos naming no brand at all."
+          },
+          "by_platform": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform",
+                "entities"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                },
+                "entities": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SovEntity"
+                  }
+                }
+              }
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "integer"
+                },
+                "entities": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "views": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "posts_considered": {
+            "type": "integer"
+          },
+          "excluded_by_brand_profile": {
+            "type": "integer"
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "request_id": {
+            "type": "string",
+            "description": "Idempotency/settlement id for this call. Quote it in support requests."
+          }
+        }
+      },
+      "WaterfallRow": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "before",
+          "after",
+          "delta"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "before": {
+            "type": "integer"
+          },
+          "after": {
+            "type": "integer"
+          },
+          "delta": {
+            "type": "integer",
+            "description": "after - before. Positive is a gain."
+          },
+          "isRemainder": {
+            "type": "boolean",
+            "description": "The synthetic row absorbing everything below the top-N cut. It is real and must not be dropped when summarising — it is what keeps a truncated breakdown summing to the whole."
+          }
+        }
+      },
+      "CompetitorReportResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "competitor",
+          "available_competitors",
+          "setup_gaps",
+          "comparable",
+          "comparable_because",
+          "periods",
+          "waterfall",
+          "timeline",
+          "unavailable",
+          "excluded_by_brand_profile",
+          "disclaimer",
+          "usage",
+          "suggested_window_hours"
+        ],
+        "properties": {
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "competitor": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Null when no configured competitor has content in the window."
+          },
+          "available_competitors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "videos"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "setup_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "comparable": {
+            "type": [
+              "boolean",
+              "null"
+            ],
+            "description": "**Check before reading the change as market movement.** False means the two periods hold very different amounts of collected video, so the change is at least as likely to reflect how much was collected as anything the competitor did."
+          },
+          "comparable_because": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "suggested_window_hours": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "When `comparable` is false, the largest window this corpus could actually support — retry with it. Null means the corpus is too short to split into two periods at all, so the fix is more collection rather than a different window."
+          },
+          "periods": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "before": {
+                "$ref": "#/components/schemas/CompetitorPeriod"
+              },
+              "after": {
+                "$ref": "#/components/schemas/CompetitorPeriod"
+              }
+            }
+          },
+          "waterfall": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "dimension",
+              "beforeTotal",
+              "afterTotal",
+              "delta",
+              "rows",
+              "reconciles",
+              "notes"
+            ],
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "creator",
+                  "video",
+                  "platform"
+                ]
+              },
+              "beforeTotal": {
+                "type": "integer"
+              },
+              "afterTotal": {
+                "type": "integer"
+              },
+              "delta": {
+                "type": "integer"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WaterfallRow"
+                }
+              },
+              "reconciles": {
+                "type": "boolean",
+                "description": "The rows sum exactly to `delta`. Computed, not assumed. If false the breakdown is defective and must not be presented."
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "timeline": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "required": [
+                "t",
+                "views",
+                "videos",
+                "drivers"
+              ],
+              "properties": {
+                "t": {
+                  "type": "integer"
+                },
+                "views": {
+                  "type": "integer"
+                },
+                "videos": {
+                  "type": "integer"
+                },
+                "drivers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      },
+                      "caption": {
+                        "type": "string"
+                      },
+                      "authorHandle": {
+                        "type": "string"
+                      },
+                      "views": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "what",
+                "because"
+              ],
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "because": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Things this flow was asked for and cannot deliver, each with its reason. Declared rather than omitted, because a response that quietly returns two of three requested charts reads as 'there was nothing to show'."
+          },
+          "excluded_by_brand_profile": {
+            "type": "integer"
+          },
+          "note": {
+            "type": "string"
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "CompetitorPeriod": {
+        "type": "object",
+        "required": [
+          "from",
+          "to",
+          "videos",
+          "views"
+        ],
+        "properties": {
+          "from": {
+            "type": "integer"
+          },
+          "to": {
+            "type": "integer"
+          },
+          "videos": {
+            "type": "integer"
+          },
+          "views": {
+            "type": "integer"
+          }
+        }
+      },
+      "ThemeFinding": {
+        "type": "object",
+        "required": [
+          "key",
+          "kind",
+          "label",
+          "sources",
+          "voices",
+          "share",
+          "confidence",
+          "evidence"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "driver",
+              "complaint",
+              "need",
+              "use_case"
+            ]
+          },
+          "label": {
+            "type": "string"
+          },
+          "sources": {
+            "type": "integer",
+            "description": "Distinct captions or comments carrying this theme."
+          },
+          "voices": {
+            "type": "integer",
+            "description": "Distinct people. Five comments from one account is one voice, not five — report this alongside any count."
+          },
+          "share": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "string",
+            "enum": [
+              "low",
+              "medium",
+              "high"
+            ],
+            "description": "Derived from distinct voices and sources, not from a model's judgement."
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sourceId",
+                "sourceKind",
+                "text"
+              ],
+              "properties": {
+                "sourceId": {
+                  "type": "string"
+                },
+                "sourceKind": {
+                  "type": "string",
+                  "enum": [
+                    "caption",
+                    "comment"
+                  ]
+                },
+                "text": {
+                  "type": "string",
+                  "description": "Verbatim. A paraphrase of a consumer is a sentence nobody said."
+                },
+                "url": {
+                  "type": "string"
+                },
+                "authorHandle": {
+                  "type": "string"
+                },
+                "at": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ProductInsightsResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "sku",
+          "known_products",
+          "setup_gaps",
+          "window_hours",
+          "sources_considered",
+          "captions",
+          "comments",
+          "findings",
+          "seen_not_established",
+          "by_sku",
+          "issue_timeline",
+          "notes",
+          "unavailable",
+          "excluded_by_brand_profile",
+          "disclaimer",
+          "usage",
+          "unknown_sku"
+        ],
+        "properties": {
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "known_products": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unknown_sku": {
+            "type": "boolean",
+            "description": "True when the requested `sku` is not one of the brand's configured products. This is an INPUT error, not an empty result — report it as a bad argument and retry with one of `known_products`, never as \"no one is talking about this product\"."
+          },
+          "setup_gaps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "sources_considered": {
+            "type": "integer"
+          },
+          "captions": {
+            "type": "integer",
+            "description": "Creators talking."
+          },
+          "comments": {
+            "type": "integer",
+            "description": "Buyers talking. A finding built only from captions is a finding about marketing, not about the product."
+          },
+          "findings": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ThemeFinding"
+            }
+          },
+          "seen_not_established": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "label",
+                "kind",
+                "sources"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "integer"
+                }
+              }
+            },
+            "description": "Themes present but below the evidence floor of 3 distinct sources. Returned so they are visible and countable — but they must NOT be reported as findings, ranked, or charted. Two mentions is not a pattern, and a bar chart makes it look like one."
+          },
+          "by_sku": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "sku",
+                "sources",
+                "themes"
+              ],
+              "properties": {
+                "sku": {
+                  "type": "string"
+                },
+                "sources": {
+                  "type": "integer"
+                },
+                "themes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "key": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "sources": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "issue_timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "t",
+                "complaints"
+              ],
+              "properties": {
+                "t": {
+                  "type": "integer"
+                },
+                "complaints": {
+                  "type": "integer"
+                },
+                "topIssue": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "what",
+                "because"
+              ],
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "because": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "excluded_by_brand_profile": {
+            "type": "integer"
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "CreatorRow": {
+        "type": "object",
+        "required": [
+          "handle",
+          "postsInCorpus",
+          "medianViews",
+          "medianEngagementRate",
+          "bestViews",
+          "consistency",
+          "competitors",
+          "safetyFlags",
+          "skus",
+          "platforms",
+          "examples",
+          "evidence"
+        ],
+        "properties": {
+          "handle": {
+            "type": "string"
+          },
+          "postsInCorpus": {
+            "type": "integer",
+            "description": "Posts WE COLLECTED, never the creator's output. A low count can mean they post rarely or that we searched narrowly — the two are indistinguishable from here."
+          },
+          "medianViews": {
+            "type": "integer",
+            "description": "Median, not average: one breakout against nine quiet posts gives an average that describes none of them."
+          },
+          "medianEngagementRate": {
+            "type": "number"
+          },
+          "bestViews": {
+            "type": "integer",
+            "description": "Reported alongside the median so a one-hit creator is visible as one."
+          },
+          "evidence": {
+            "type": "string",
+            "enum": [
+              "provisional",
+              "moderate",
+              "measured"
+            ],
+            "description": "How much this row is worth standing on. \"provisional\" means fewer than 4 posts — a median of two posts is just their average, and one breakout in the pair puts a creator at the top of the list on the thinnest evidence in it. Never present a provisional row as a top creator without saying so."
+          },
+          "consistency": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Spread around the creator's OWN median, 0..1, lower is steadier. Null when there are too few posts for it to mean anything, which is more useful than a number that does not."
+          },
+          "competitors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "safetyFlags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Exclusion terms this creator's captions matched. A hit worth reviewing — the absence of one is never a clearance."
+          },
+          "skus": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "examples": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "url": {
+                  "type": "string"
+                },
+                "caption": {
+                  "type": "string"
+                },
+                "views": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CreatorDiscoveryResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "unknown_sku",
+          "known_products",
+          "sku",
+          "topic",
+          "window_hours",
+          "posts_considered",
+          "creators",
+          "single_post_creators",
+          "flagged_creators",
+          "safety_statement",
+          "notes",
+          "unavailable",
+          "disclaimer",
+          "usage"
+        ],
+        "properties": {
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unknown_sku": {
+            "type": "boolean",
+            "description": "True when the requested `sku` is not a configured product. An input error, not an empty result."
+          },
+          "known_products": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "topic": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "posts_considered": {
+            "type": "integer"
+          },
+          "creators": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CreatorRow"
+            }
+          },
+          "single_post_creators": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "handle",
+                "views"
+              ],
+              "properties": {
+                "handle": {
+                  "type": "string"
+                },
+                "views": {
+                  "type": "integer"
+                },
+                "url": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Creators with exactly one post in the corpus. Present and countable but NOT ranked, and they must not be compared with the ranked list — one post has no median and no consistency."
+          },
+          "flagged_creators": {
+            "type": "integer"
+          },
+          "safety_statement": {
+            "type": "string",
+            "description": "Repeat this whenever you mention brand safety. A flag is a hit; zero flags is NOT a clearance — screening is keyword-based over captions only and cannot see video content or posts outside this corpus."
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "what",
+                "because"
+              ],
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "because": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "CampaignReportResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "unknown_sku",
+          "known_products",
+          "launch_at",
+          "window_hours",
+          "sku",
+          "term",
+          "periods",
+          "waterfall",
+          "ownership",
+          "timeline",
+          "comments_on_posts",
+          "excluded_by_brand_profile",
+          "unavailable",
+          "disclaimer",
+          "usage"
+        ],
+        "properties": {
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unknown_sku": {
+            "type": "boolean"
+          },
+          "known_products": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "launch_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "sku": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "term": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "periods": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "before": {
+                "type": "object",
+                "properties": {
+                  "videos": {
+                    "type": "integer"
+                  },
+                  "views": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "after": {
+                "type": "object",
+                "properties": {
+                  "videos": {
+                    "type": "integer"
+                  },
+                  "views": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "waterfall": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "dimension",
+              "beforeTotal",
+              "afterTotal",
+              "delta",
+              "rows",
+              "reconciles",
+              "notes"
+            ],
+            "properties": {
+              "dimension": {
+                "type": "string",
+                "enum": [
+                  "creator",
+                  "video",
+                  "platform",
+                  "sku"
+                ]
+              },
+              "beforeTotal": {
+                "type": "integer"
+              },
+              "afterTotal": {
+                "type": "integer"
+              },
+              "delta": {
+                "type": "integer"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/WaterfallRow"
+                }
+              },
+              "reconciles": {
+                "type": "boolean"
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "ownership": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "owned",
+              "notOwned",
+              "ownedUnknown",
+              "statement"
+            ],
+            "properties": {
+              "owned": {
+                "type": "object",
+                "required": [
+                  "videos",
+                  "views",
+                  "share"
+                ],
+                "properties": {
+                  "videos": {
+                    "type": "integer"
+                  },
+                  "views": {
+                    "type": "integer"
+                  },
+                  "share": {
+                    "type": "number"
+                  }
+                }
+              },
+              "notOwned": {
+                "type": "object",
+                "required": [
+                  "videos",
+                  "views",
+                  "share"
+                ],
+                "properties": {
+                  "videos": {
+                    "type": "integer"
+                  },
+                  "views": {
+                    "type": "integer"
+                  },
+                  "share": {
+                    "type": "number"
+                  }
+                },
+                "description": "Everything the brand did not post — paid and earned TOGETHER. These cannot be separated: nothing in the corpus records whether a post was promoted, boosted, gifted or contracted."
+              },
+              "ownedUnknown": {
+                "type": "boolean",
+                "description": "True when no social accounts are connected, so even the owned share cannot be identified."
+              },
+              "statement": {
+                "type": "string",
+                "description": "Repeat this wherever the split is shown. It is the sentence that stops a marketing team allocating budget against a paid/earned cut that does not exist here."
+              }
+            }
+          },
+          "timeline": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "object",
+              "required": [
+                "t",
+                "views",
+                "videos",
+                "drivers"
+              ],
+              "properties": {
+                "t": {
+                  "type": "integer"
+                },
+                "views": {
+                  "type": "integer"
+                },
+                "videos": {
+                  "type": "integer"
+                },
+                "drivers": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "url": {
+                        "type": "string"
+                      },
+                      "caption": {
+                        "type": "string"
+                      },
+                      "authorHandle": {
+                        "type": "string"
+                      },
+                      "views": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "comments_on_posts": {
+            "type": "integer"
+          },
+          "excluded_by_brand_profile": {
+            "type": "integer"
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "what",
+                "because"
+              ],
+              "properties": {
+                "what": {
+                  "type": "string"
+                },
+                "because": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "disclaimer": {
+            "type": "string"
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
           }
         }
       }

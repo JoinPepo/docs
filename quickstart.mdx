@@ -4,7 +4,7 @@ description: "From an API key to your first scored result."
 ---
 
 <Note>
-Pepo is in pilot. You are issued an API key and your base URL together — replace `https://api.pepo.ai` below with the URL you were given.
+Pepo is in pilot. You are issued an API key and your base URL together — replace `https://api.joinpepo.com` below with the URL you were given.
 </Note>
 
 <Warning>
@@ -17,12 +17,12 @@ Free, and the fastest way to confirm your key works.
 
 <CodeGroup>
 ```bash cURL
-curl https://api.pepo.ai/v1/credits \
+curl https://api.joinpepo.com/v1/credits \
   -H "Authorization: Bearer $PEPO_API_KEY"
 ```
 
 ```ts TypeScript
-const res = await fetch('https://api.pepo.ai/v1/credits', {
+const res = await fetch('https://api.joinpepo.com/v1/credits', {
   headers: { Authorization: `Bearer ${process.env.PEPO_API_KEY}` },
 })
 console.log(await res.json())
@@ -32,7 +32,7 @@ console.log(await res.json())
 import os, requests
 
 r = requests.get(
-    "https://api.pepo.ai/v1/credits",
+    "https://api.joinpepo.com/v1/credits",
     headers={"Authorization": f"Bearer {os.environ['PEPO_API_KEY']}"},
 )
 print(r.json())
@@ -48,7 +48,7 @@ print(r.json())
 Every workflow reads it, and it's what makes results about *your* brand rather than your category. A new workspace returns `"status": "needs_setup"` until you create one.
 
 ```bash
-curl -X POST https://api.pepo.ai/v1/brand-profile \
+curl -X POST https://api.joinpepo.com/v1/brand-profile \
   -H "Authorization: Bearer $PEPO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -76,7 +76,7 @@ Full field list: [Brand profile](/brand-profile).
 Cost tracks how many posts the call reads, which Pepo can count exactly — so the estimate matches the invoice.
 
 ```bash
-curl -X POST https://api.pepo.ai/v1/estimate \
+curl -X POST https://api.joinpepo.com/v1/estimate \
   -H "Authorization: Bearer $PEPO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"endpoint":"/v1/trending","params":{"limit":25,"platforms":["tiktok"]}}'
@@ -98,7 +98,7 @@ curl -X POST https://api.pepo.ai/v1/estimate \
 ## 4. Ask what is trending
 
 ```bash
-curl -X POST https://api.pepo.ai/v1/trending \
+curl -X POST https://api.joinpepo.com/v1/trending \
   -H "Authorization: Bearer $PEPO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"platforms":["tiktok"],"window":"7d","limit":10,"max_cost_usd":5}'

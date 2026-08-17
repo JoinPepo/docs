@@ -2,7 +2,7 @@
 
 ## About this project
 
-- The public documentation for [Pepo](https://pepo.ai), built on [Mintlify](https://mintlify.com).
+- The public documentation for [Pepo](https://joinpepo.com), built on [Mintlify](https://mintlify.com).
 - Pages are MDX with YAML frontmatter. Configuration lives in `docs.json`.
 - `openapi.json` drives the entire **API reference** tab and its playground. It is the contract customers generate clients from — a stale field here becomes a broken integration somewhere else.
 - Source of truth for the API and MCP server is the `pepo-marketing` repo (`convex/http.ts`, `mcp/`). Its `docs/api/README.md` and `docs/mcp/README.md` are the **internal** contracts, and they intentionally document more than this site does. See [Content boundaries](#content-boundaries).
