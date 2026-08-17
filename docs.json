@@ -24,6 +24,7 @@
             "pages": [
               "index",
               "quickstart",
+              "demo",
               "authentication"
             ]
           },
@@ -62,7 +63,7 @@
     "links": [
       {
         "label": "Support",
-        "href": "mailto:support@pepo.ai"
+        "href": "mailto:support@joinpepo.com"
       }
     ],
     "primary": {

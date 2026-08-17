@@ -12,12 +12,21 @@ curl https://api.joinpepo.com/v1/credits \
 
 If your host cannot set `Authorization`, `X-Api-Key: pk_live_…` is accepted as an alternative.
 
-## Key types
+## Key modes
 
-| Prefix | Behaviour |
+A key's **mode** decides what it can do. Every key's plaintext currently begins `pk_live_` or `pk_test_`, and **the prefix does not tell you the mode** — read it from `GET /v1/credits`, which returns `mode` on every key.
+
+| Mode | Behaviour |
 |---|---|
-| `pk_live_` | Production. Reads your real corpus and meters real credits. |
-| `pk_test_` | Sandbox. Returns fixture data and meters nothing — safe for a client's tool-discovery probing, CI, and demos. |
+| `live` | Reads your real corpus and meters real credits. |
+| `test` | **Behaves exactly like `live`** — real data, real credits. The label marks a non-production workspace and nothing more. |
+| `demo` | Never meters, never collects, and labels every response as sample data. This is the only mode that is a safety boundary. |
+
+<Warning>
+`test` was previously documented here as "returns fixture data and meters nothing". That was never implemented. A `test` key spends real credits against real data, so point one only at a workspace you are happy to spend against. If you want a key that cannot cost you anything, ask for a `demo` key — see [Try it in five minutes](/demo).
+</Warning>
+
+A `demo` key is also **read-only**: profile writes return `403 demo_read_only`, so a shared demo key cannot be used to alter the workspace it showcases.
 
 Keys are created in the Pepo dashboard by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
 

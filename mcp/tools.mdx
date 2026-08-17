@@ -3,7 +3,7 @@ title: "Tools"
 description: "What the assistant can do once Pepo is connected."
 ---
 
-Six tools, each doing one nameable job.
+Fourteen tools, each doing one nameable job. Three are free, one writes, and the rest read your corpus.
 
 ## Free
 
@@ -21,7 +21,15 @@ Six tools, each doing one nameable job.
   Your approved profile — products, competitors, category, exclusions. Returns `needs_setup` with the fix rather than an error when there is no profile yet.
 </ResponseField>
 
-## Metered
+## The one tool that writes
+
+<ResponseField name="set_brand_profile" type="tool">
+  Creates or updates the brand profile — products, competitors, category, exclusion terms.
+
+  This is the **only** tool in the server that changes anything. It writes to your workspace's profile and nowhere else: it cannot send a message, update a CRM, or publish. On a `demo` key it is refused outright with `403 demo_read_only`.
+</ResponseField>
+
+## Discovery
 
 <ResponseField name="find_trending" type="tool">
   Ranked videos with momentum, classification, confidence, observation coverage, and the comparison group.
@@ -43,6 +51,62 @@ Six tools, each doing one nameable job.
   One video in full: engagement, the observation history behind any momentum claim, and a sample of comments with their tone **and the coverage of that tone**.
 
   Renders the **video panel** — thumbnail, a views-over-time sparkline drawn only when there are at least two observations, and the tone split shown against how many comments were actually classified.
+</ResponseField>
+
+<ResponseField name="find_creators" type="tool">
+  Creators for a product, topic or audience, ranked on **medians rather than means** so one breakout post cannot carry a roster spot.
+
+  Each creator carries an evidence level (`provisional`, `moderate`, `measured`) set by how many posts were actually observed, and implausible engagement is **flagged rather than silently capped**. The safety line says what was checked: no creator matching an exclusion term is not the same as a creator cleared for a partnership, and the tool says so rather than letting silence imply approval.
+
+  Renders the **creator panel**.
+</ResponseField>
+
+## Analysis
+
+<ResponseField name="share_of_voice" type="tool">
+  Your share of observed conversation against your competitors, over a window.
+
+  Posts naming both you and a competitor are counted for **neither** side rather than being split, and the response states how much of the corpus went unattributed. Where that share is high enough to make the split meaningless, the result says so instead of returning a confident percentage.
+
+  Renders the **share of voice panel**.
+</ResponseField>
+
+<ResponseField name="competitor_report" type="tool">
+  What changed for one competitor between two periods, as a waterfall whose rows sum to the total by construction — a truncated list emits an explicit remainder row rather than quietly not adding up.
+
+  When the two periods were not observed to comparable depth, the report refuses to be read as market movement **and returns the window that would work**, so the next question is a re-run rather than a dead end.
+
+  Renders the **competitor panel**.
+</ResponseField>
+
+<ResponseField name="product_insights" type="tool">
+  What people say about one product or SKU — drivers, complaints, requests, use cases — drawn from captions and comments.
+
+  A theme becomes a *finding* only above an evidence floor of **three distinct sources and two distinct voices**; five comments from one account is one person. Themes below the floor come back in a separate list that is deliberately not chartable, so an unestablished theme cannot be ranked beside an established one.
+
+  Renders the **product panel**.
+</ResponseField>
+
+<ResponseField name="campaign_report" type="tool">
+  Social response around a launch or campaign.
+
+  It splits **owned versus not-owned** and refuses to split paid from earned, because nothing in a social corpus records whether a post was promoted. It also refuses to call any of it *lift*: there is no control group, so the report describes what happened around the launch, not what the launch caused.
+
+  Renders the **campaign panel**.
+</ResponseField>
+
+## The corpus itself
+
+<ResponseField name="list_records" type="tool">
+  Page the collected dataset, with a quality block: gaps, duplicates, coverage, composition, and a verification statement that distinguishes *complete* from *confirmed*.
+
+  Reading rows is unmetered — they were paid for at collection.
+
+  Renders the **dataset panel**.
+</ResponseField>
+
+<ResponseField name="export_dataset" type="tool">
+  The same dataset as CSV, for taking away.
 </ResponseField>
 
 ## What a result looks like
@@ -72,10 +136,14 @@ Cost $0.07 · balance $24.87
 
 The warnings are in the summary rather than only in the structured data, because that is the text the model actually reads. The 800k-view result sitting at `watchlist` is the system working: three hours of observation cannot show a trajectory, however large the number.
 
-## Coming next
+## Panels
 
-Share of voice, competitor and consumer intelligence, creator discovery and campaign analysis are in build on the same corpus and the same evidence rules. Ask us where they are — during the pilot we'll tell you what's close.
+Eight of the tools render an interactive panel via the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview) — trend board, video, share of voice, competitor, product, creators, campaign, and dataset.
 
-## Nothing here writes anywhere
+Where a payload refuses to support a claim, **the panel draws the refusal first and mutes the chart beneath it** rather than hiding either. A chart is a far more persuasive place to be wrong than a JSON field, so the competitor waterfall will not draw at all if its rows do not sum to the total it claims to explain.
 
-Every tool is read-only. Outreach, briefs and posts will go through propose → human approval → receipt when they ship. No tool sends a message, updates a CRM, or publishes anything.
+Where a host does not support the extension, the same information comes back as text and links. Nothing depends on the panel rendering.
+
+## Nothing here publishes
+
+`set_brand_profile` is the only tool that writes, and it writes only your own brand profile. No tool sends a message, updates a CRM, or publishes anything.

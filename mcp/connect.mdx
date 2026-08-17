@@ -24,7 +24,7 @@ Pepo authenticates with an API key in an `Authorization` header, so any client t
 | **ChatGPT desktop app** | Works | Settings → Plugins → MCPs → Add server |
 | **Claude Code** | Works | `claude mcp add` |
 | **Codex CLI** | Works | `codex mcp add` |
-| **Your own code** | Works | Any MCP SDK, or the [REST API](/api-reference/introduction) |
+| **Your own code** | Works | Any MCP SDK, or the [REST API](/api-reference/account/get-credit-balance) |
 | **Claude desktop app / claude.ai** | Works | Key in the URL — see below |
 
 ## ChatGPT desktop app
@@ -95,7 +95,7 @@ Claude's **Add custom connector** dialog takes a name and a URL, with optional O
     Leave the OAuth fields empty.
   </Step>
   <Step title="Connect">
-    Add it, then press **Connect** on the connector's page. Claude lists the seven tools with per-tool permissions once it is connected.
+    Add it, then press **Connect** on the connector's page. Claude lists the fourteen tools with per-tool permissions once it is connected.
   </Step>
 </Steps>
 
@@ -104,7 +104,7 @@ Why this works: given a URL that returns 401, Claude begins an OAuth discovery s
 </Note>
 
 <Warning>
-A key in a URL is a key in a URL — it lands in proxy logs and browser history in a way a header does not. Prefer a `pk_test_` key while evaluating, keep these URLs out of shared documents, and revoke from **Settings → API keys** the moment one leaks. Header auth remains the better option on any client that supports it.
+A key in a URL is a key in a URL — it lands in proxy logs and browser history in a way a header does not. Use a `demo` key while evaluating (a `test` key spends real credits), keep these URLs out of shared documents, and revoke from **Settings → API keys** the moment one leaks. Header auth remains the better option on any client that supports it.
 </Warning>
 
 The same URL form works for any host that accepts a URL and nothing else.
@@ -140,9 +140,19 @@ If it fails, in order of likelihood:
   </Accordion>
 </AccordionGroup>
 
-## Test mode
+## Test mode is not a safety boundary — demo mode is
 
-A `pk_test_` key returns fixture data and never meters. Use it while wiring up a client, in CI, and for demos — a host's tool-discovery probing then costs nothing.
+A `test` key is labelled for a non-production workspace, and that label is all it is: test keys read the same data and meter the same credits as live keys. Point one at a workspace you are happy to spend against.
+
+The mode that *is* a boundary is `demo`. A demo key never meters, never collects, is read-only, and labels every response as sample data. If you want a key that cannot cost you anything — for CI, for a client's tool-discovery probing, or for a demo — that is the one to ask for.
+
+<Note>
+The mode is not visible in the key's prefix. `GET /v1/credits` returns `mode` on every key, and it is free to call. See [Authentication](/authentication).
+</Note>
+
+<Card title="Try it in five minutes" icon="play" href="/demo">
+  There is a public demo key you can connect right now, with a sample brand behind it.
+</Card>
 
 ## One key, one workspace
 
