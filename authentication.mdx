@@ -28,7 +28,11 @@ A key's **mode** decides what it can do. Every key's plaintext currently begins 
 
 A `demo` key is also **read-only**: profile writes return `403 demo_read_only`, so a shared demo key cannot be used to alter the workspace it showcases.
 
-Keys are created in the Pepo dashboard by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
+Keys are created in the [Pepo dashboard](https://app.joinpepo.com) by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
+
+<Note>
+During the pilot your first key is issued to you directly, alongside your base URL. Ask at [contact@joinpepo.com](mailto:contact@joinpepo.com) if you need one added, rotated, or topped up.
+</Note>
 
 Revoking is immediate and leaves the key's usage history intact, so an audit of what a key did survives its revocation.
 

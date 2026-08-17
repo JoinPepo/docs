@@ -1,6 +1,6 @@
 # Pepo docs
 
-Public documentation for [Pepo](https://pepo.ai) — the REST API and the MCP server. Built on [Mintlify](https://mintlify.com); content is MDX in this repo, so moving to another host later is a port rather than a rewrite.
+Public documentation for [Pepo](https://joinpepo.com) — the REST API and the MCP server. Built on [Mintlify](https://mintlify.com); content is MDX in this repo, so moving to another host later is a port rather than a rewrite.
 
 ## Layout
 

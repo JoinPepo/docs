@@ -1237,7 +1237,7 @@
                 "balance_usd": 4.934,
                 "suggestions": [
                   "Reduce `limit` from 50 to 20 (estimated $4.82).",
-                  "Add credits at https://app.pepo.ai/settings/billing"
+                  "Add credits at https://app.joinpepo.com/settings/billing"
                 ]
               }
             }
