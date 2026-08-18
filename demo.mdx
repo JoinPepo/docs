@@ -7,7 +7,7 @@ You do not need a workspace, a credit card, or a sales call to see what Pepo ans
 
 | | |
 |---|---|
-| **Key** | `pk_test_REPLACE_AFTER_DEPLOY` |
+| **Key** | `pk_test_4f7536ff5f9cdd1a19a28f6a38e02015` |
 | **MCP** | `https://mcp.joinpepo.com/mcp` |
 | **REST** | `https://api.joinpepo.com` |
 
@@ -25,7 +25,7 @@ Two labels travel with every response, and they mean different things. `test_mod
   <Tab title="Claude Code">
     ```bash
     claude mcp add --transport http pepo https://mcp.joinpepo.com/mcp \
-      --header "Authorization: Bearer pk_test_REPLACE_AFTER_DEPLOY"
+      --header "Authorization: Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015"
     ```
 
     `claude mcp list` should report `pepo: … ✔ Connected`.
@@ -34,12 +34,12 @@ Two labels travel with every response, and they mean different things. `test_mod
     Open this link — Cursor's install-link scheme takes the whole config:
 
     ```
-    cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0X1JFUExBQ0VfQUZURVJfREVQTE9ZIn19
+    cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0XzRmNzUzNmZmNWY5Y2RkMWExOWEyOGY2YTM4ZTAyMDE1In19
     ```
   </Tab>
   <Tab title="VS Code">
     ```
-    https://vscode.dev/redirect/mcp/install?name=pepo&config=%7B%22name%22%3A%20%22pepo%22%2C%20%22type%22%3A%20%22http%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fmcp.joinpepo.com%2Fmcp%22%2C%20%22headers%22%3A%20%7B%22Authorization%22%3A%20%22Bearer%20pk_test_REPLACE_AFTER_DEPLOY%22%7D%7D
+    https://vscode.dev/redirect/mcp/install?name=pepo&config=%7B%22name%22%3A%20%22pepo%22%2C%20%22type%22%3A%20%22http%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fmcp.joinpepo.com%2Fmcp%22%2C%20%22headers%22%3A%20%7B%22Authorization%22%3A%20%22Bearer%20pk_test_4f7536ff5f9cdd1a19a28f6a38e02015%22%7D%7D
     ```
   </Tab>
   <Tab title="ChatGPT">
@@ -53,7 +53,7 @@ Two labels travel with every response, and they mean different things. `test_mod
         **Settings → Connectors → Create.** URL `https://mcp.joinpepo.com/mcp`, transport **Streamable HTTP**, authentication **none**.
       </Step>
       <Step title="Add the key as a header">
-        `Authorization` = `Bearer pk_test_REPLACE_AFTER_DEPLOY`.
+        `Authorization` = `Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015`.
       </Step>
     </Steps>
   </Tab>
@@ -61,7 +61,7 @@ Two labels travel with every response, and they mean different things. `test_mod
     No install link here either. **Settings → Connectors → Add custom connector**, and use the key-in-URL form, because the dialog has no field for a header:
 
     ```
-    https://mcp.joinpepo.com/k/pk_test_REPLACE_AFTER_DEPLOY/mcp
+    https://mcp.joinpepo.com/k/pk_test_4f7536ff5f9cdd1a19a28f6a38e02015/mcp
     ```
 
     See [Connect](/mcp/connect#claude-desktop-app-and-claude-ai) for why that form is needed.
@@ -69,7 +69,7 @@ Two labels travel with every response, and they mean different things. `test_mod
   <Tab title="curl">
     ```bash
     curl -s https://api.joinpepo.com/v1/share-of-voice \
-      -H "Authorization: Bearer pk_test_REPLACE_AFTER_DEPLOY" \
+      -H "Authorization: Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015" \
       -H 'content-type: application/json' \
       -d '{"window":"7d"}'
     ```
