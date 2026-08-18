@@ -7,14 +7,16 @@ You do not need a workspace, a credit card, or a sales call to see what Pepo ans
 
 | | |
 |---|---|
-| **Key** | `pk_test_10bea6c5bf8d39ef8f835b95b5861499` |
+| **Key** | `pk_test_4f7536ff5f9cdd1a19a28f6a38e02015` |
 | **MCP** | `https://mcp.joinpepo.com/mcp` |
 | **REST** | `https://api.joinpepo.com` |
 
-This key is in `demo` mode: it **never meters**, **never collects**, and is **read-only**, so it is safe to share and cannot be used to change the workspace it showcases or run up a bill. Every response it returns carries `demo: true` and says in words that the data is a sample.
+This is a **`test` key on a sample workspace** — the same key type you would use against your own brand, pointed at a demo one. It never meters, never collects, and is read-only, so it is safe to publish: it cannot run up a bill or change the workspace it showcases.
+
+Two labels travel with every response, and they mean different things. `test_mode: true` says nothing was charged. `demo: true` says the videos and creators are a sample rather than a real brand's — that one comes from the workspace, so a test key on *your* workspace would not carry it.
 
 <Note>
-The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indicate mode. See [Authentication](/authentication).
+`usage.metered_usd` reports what each call would have cost on a live key, so you can size real pricing while paying nothing. See [Authentication](/authentication) for what the modes do.
 </Note>
 
 ## Install
@@ -23,7 +25,7 @@ The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indic
   <Tab title="Claude Code">
     ```bash
     claude mcp add --transport http pepo https://mcp.joinpepo.com/mcp \
-      --header "Authorization: Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499"
+      --header "Authorization: Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015"
     ```
 
     `claude mcp list` should report `pepo: … ✔ Connected`.
@@ -32,12 +34,12 @@ The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indic
     Open this link — Cursor's install-link scheme takes the whole config:
 
     ```
-    cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0XzEwYmVhNmM1YmY4ZDM5ZWY4ZjgzNWI5NWI1ODYxNDk5In19
+    cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0XzRmNzUzNmZmNWY5Y2RkMWExOWEyOGY2YTM4ZTAyMDE1In19
     ```
   </Tab>
   <Tab title="VS Code">
     ```
-    https://vscode.dev/redirect/mcp/install?name=pepo&config=%7B%22name%22%3A%20%22pepo%22%2C%22type%22%3A%20%22http%22%2C%22url%22%3A%20%22https%3A%2F%2Fmcp.joinpepo.com%2Fmcp%22%2C%22headers%22%3A%20%7B%22Authorization%22%3A%20%22Bearer%20pk_test_10bea6c5bf8d39ef8f835b95b5861499%22%7D%7D
+    https://vscode.dev/redirect/mcp/install?name=pepo&config=%7B%22name%22%3A%20%22pepo%22%2C%20%22type%22%3A%20%22http%22%2C%20%22url%22%3A%20%22https%3A%2F%2Fmcp.joinpepo.com%2Fmcp%22%2C%20%22headers%22%3A%20%7B%22Authorization%22%3A%20%22Bearer%20pk_test_4f7536ff5f9cdd1a19a28f6a38e02015%22%7D%7D
     ```
   </Tab>
   <Tab title="ChatGPT">
@@ -51,7 +53,7 @@ The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indic
         **Settings → Connectors → Create.** URL `https://mcp.joinpepo.com/mcp`, transport **Streamable HTTP**, authentication **none**.
       </Step>
       <Step title="Add the key as a header">
-        `Authorization` = `Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499`.
+        `Authorization` = `Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015`.
       </Step>
     </Steps>
   </Tab>
@@ -59,7 +61,7 @@ The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indic
     No install link here either. **Settings → Connectors → Add custom connector**, and use the key-in-URL form, because the dialog has no field for a header:
 
     ```
-    https://mcp.joinpepo.com/k/pk_test_10bea6c5bf8d39ef8f835b95b5861499/mcp
+    https://mcp.joinpepo.com/k/pk_test_4f7536ff5f9cdd1a19a28f6a38e02015/mcp
     ```
 
     See [Connect](/mcp/connect#claude-desktop-app-and-claude-ai) for why that form is needed.
@@ -67,7 +69,7 @@ The prefix reads `pk_test_` but the mode is `demo` — the prefix does not indic
   <Tab title="curl">
     ```bash
     curl -s https://api.joinpepo.com/v1/share-of-voice \
-      -H "Authorization: Bearer pk_test_10bea6c5bf8d39ef8f835b95b5861499" \
+      -H "Authorization: Bearer pk_test_4f7536ff5f9cdd1a19a28f6a38e02015" \
       -H 'content-type: application/json' \
       -d '{"window":"7d"}'
     ```
@@ -131,7 +133,7 @@ The sample workspace is a skincare brand with competitors, products and a connec
 Two limits worth knowing before you judge the output:
 
 - **The corpus is small**, a few hundred videos over a few days. Several flows refuse to draw conclusions at that size, which is correct behaviour and also means you see the refusals more often than a real workspace would.
-- **Demo keys cannot collect.** Collection calls a paid provider, so the sample corpus is fixed rather than growing on your request. Everything else works exactly as it does on a metered key.
+- **Test keys cannot collect.** Collection calls a paid provider, so the sample corpus is fixed rather than growing on your request. Everything else works exactly as it does on a metered key.
 
 The demo corpus is refreshed, so exactly which themes clear the evidence floor changes between runs. The *shape* of the answer — some established, some explicitly not, and the boundary shown rather than hidden — is the thing to look at.
 
@@ -139,7 +141,7 @@ The demo corpus is refreshed, so exactly which themes clear the evidence floor c
 
 `POST /v1/estimate` prices any call before you make it. On a demo key the usage block reports `metered_usd` — what the call *would* have cost — while charging nothing, so you can see real pricing without being billed. That is the number to look at if you are working out whether this is affordable at your volume.
 
-Demo keys are rate limited to 30 requests a minute, since the key is public.
+This key is rate limited to 30 requests a minute. Test keys have no balance to draw down, so a request limit is the only thing bounding a shared one.
 
 <CardGroup cols={2}>
   <Card title="Full endpoint reference" icon="code" href="/api-reference/account/get-credit-balance">

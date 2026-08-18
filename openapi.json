@@ -73,7 +73,7 @@
                         "live",
                         "test"
                       ],
-                      "description": "`test` keys return fixtures and never meter."
+                      "description": "What this key is allowed to do. `live` meters real credits and can start collection. `test` does neither: it reads this workspace's own corpus, unmetered and read-only, so an integration can be exercised without spending. The token's prefix states the mode (`pk_live_` / `pk_test_`). Whether a response is labelled sample data comes from the workspace, not this field."
                     }
                   }
                 }

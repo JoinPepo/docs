@@ -1,0 +1,99 @@
+---
+title: "The console"
+description: "What your key did, what it cost, and what broke — in the dashboard."
+---
+
+Everything the API reports in a response is also visible in the dashboard, after the fact and across every call. Four pages: **Logs**, **Usage**, **API keys**, and **Billing**.
+
+The console is read-only about your traffic. It cannot replay, retry, or edit a request — it records what happened.
+
+## Logs
+
+One row per request, newest first: time, endpoint, status, duration, cost, and the request id.
+
+**Failures are the point.** The `usage` block in a response tells you what a successful call cost; it cannot tell you why yesterday's job stopped working. Logs keeps every request, including the ones that produced no charge — the `402` at an empty balance, the `400` with a misspelled field, the `404` for a video that is not in your corpus.
+
+Filter by status class (`2xx`, `4xx`, `5xx`) rather than by exact code, because the question is usually "what is failing" and not "show me 402s".
+
+<Warning>
+A request rejected for a **missing or invalid key** does not appear in your log. Without a valid key there is no workspace to attribute the request to, and attributing it by guesswork would put one customer's failed requests in another customer's console. If a call seems to have vanished, check the key before concluding it never arrived.
+</Warning>
+
+### Reading a charge
+
+Click a request id to expand what it was billed for. A `$0.3600` charge on `/v1/share-of-voice` decomposes to:
+
+| Unit | Quantity | Unit price | Cost |
+|---|---|---|---|
+| `search_request` | 1 | $0.0100 | $0.0100 |
+| `content_enriched` | 175 | $0.0020 | $0.3500 |
+| | | **Total charged** | **$0.3600** |
+
+The lines are checked against the total. If they ever fail to add up, the console says the breakdown is incomplete rather than presenting a partial list as an explanation — a cost you cannot decompose is a cost you have to take on trust.
+
+<Note>
+Requests are kept for **30 days**. Your credit history is kept indefinitely — losing a log row costs a debugging session, losing a ledger row costs an audit.
+</Note>
+
+## Usage
+
+Spend, request volume, error rate and latency over 7, 30 or 90 days, plus spend by endpoint.
+
+Three things this page will not do:
+
+- **Report a 0% error rate for a workspace that made no calls.** With no requests there is no rate, and it says "No data" rather than asserting reliability it has no evidence for. The same holds for latency.
+- **Average your latency.** Nine 10 ms calls and one 5-second call have a mean of about 509 ms, which describes neither the typical call nor the slow one. You get p50 and p95.
+- **Hide a quiet day.** Days with no spend render as a visible zero, so "nothing happened" is distinguishable from "the chart stops here".
+
+Free endpoints appear at `$0.0000` rather than being dropped from the table. A loop hammering `check_credits` is a real problem and would be invisible if zero-cost rows were hidden.
+
+### When spend and request counts disagree
+
+Spend comes from your billing records, which are permanent. Request counts come from the log, which is pruned at 30 days. Past that horizon the two describe different sets of calls, so the page states how much spend has no request behind it instead of showing a count that quietly understates what you were billed for.
+
+## API keys
+
+Create, inspect and revoke keys. Owners and admins only — a key is a standing grant of the workspace's whole data surface plus its credit balance.
+
+The **Mode** column is the one to read. Key plaintext begins `pk_live_` or `pk_test_`, and **the prefix does not tell you the mode**: a `demo` key is issued with a `pk_test_` prefix. See [Authentication](/authentication) for what each mode does.
+
+**Last used** answers the question that matters most often: which key is the one you provisioned and never deployed. It reads `Never` until a key's first request.
+
+<Warning>
+A new key's plaintext is shown **once**, at creation. Only a hash is stored, so a lost key is replaced, not recovered. The console keeps it on screen until you dismiss it rather than in a notification you can miss.
+</Warning>
+
+Revoking is immediate and leaves the key's usage history intact, so an audit of what a key did survives its revocation.
+
+## Billing
+
+Your prepaid balance, the default per-call ceiling, and the append-only credit history.
+
+Every history row is signed and carries the balance it produced, so you can follow the arithmetic rather than trust the total. Reserve-then-settle is visible as two rows: a reservation for the estimate, then a refund of the difference once the real cost is known.
+
+```
+reserve /v1/share-of-voice                          −$0.3620   $39.6380
+settle  /v1/share-of-voice (reserved 362000,
+                            used 360000)            +$0.0020   $39.6400
+```
+
+That is the prepaid model working: you are never charged the estimate, only the actual cost, and the difference comes back in the same transaction.
+
+<Note>
+Top-ups are **not self-serve during the pilot**. Email [contact@joinpepo.com](mailto:contact@joinpepo.com) and the credit will appear in this history with its reference against it.
+</Note>
+
+## Settings
+
+The brand profile every API workflow reads — products, competitors, category, and exclusion terms. This is the same object `GET /v1/brand-profile` returns; see [Brand profile](/brand-profile) for what each field changes.
+
+## Related
+
+<CardGroup cols={2}>
+  <Card title="Credits and cost" icon="coins" href="/credits">
+    How metering works, and what each unit costs.
+  </Card>
+  <Card title="Authentication" icon="key" href="/authentication">
+    Key modes, and why the prefix does not tell you which one you have.
+  </Card>
+</CardGroup>
