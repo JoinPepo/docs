@@ -14,19 +14,24 @@ If your host cannot set `Authorization`, `X-Api-Key: pk_live_…` is accepted as
 
 ## Key modes
 
-A key's **mode** decides what it can do. Every key's plaintext currently begins `pk_live_` or `pk_test_`, and **the prefix does not tell you the mode** — read it from `GET /v1/credits`, which returns `mode` on every key.
+A key's **mode** decides what it can do, and the token's prefix states which.
 
-| Mode | Behaviour |
-|---|---|
-| `live` | Reads your real corpus and meters real credits. |
-| `test` | **Behaves exactly like `live`** — real data, real credits. The label marks a non-production workspace and nothing more. |
-| `demo` | Never meters, never collects, and labels every response as sample data. This is the only mode that is a safety boundary. |
+| Prefix | Mode | Behaviour |
+|---|---|---|
+| `pk_live_` | `live` | Reads your real corpus, meters real credits, and can start collection. |
+| `pk_test_` | `test` | Reads your real corpus **unmetered and read-only**, and cannot start collection. |
+
+A test key is not a sandbox full of fake data. It reads the corpus already collected for *your* workspace, so your integration is exercised against your own products, competitors and exclusion terms — the responses have the shape production will return. It simply never spends.
+
+That works because the cost is in collection, not in reading. A test key cannot start one, so there is nothing to charge for. Test keys are **rate limited** rather than balance limited, since they have no balance to draw down.
+
+<Note>
+Every test-mode response carries `test_mode: true` and reports `usage.metered_usd` — what the same call would have cost on a live key. You can size your spend before committing to it.
+</Note>
 
 <Warning>
-`test` was previously documented here as "returns fixture data and meters nothing". That was never implemented. A `test` key spends real credits against real data, so point one only at a workspace you are happy to spend against. If you want a key that cannot cost you anything, ask for a `demo` key — see [Try it in five minutes](/demo).
+`test` was documented for a long time as "returns fixture data and meters nothing" while being unimplemented, which meant it quietly behaved exactly like `live` and spent real credits. It is implemented now, and this page describes what it actually does. If you hold a key issued before that, replace it.
 </Warning>
-
-A `demo` key is also **read-only**: profile writes return `403 demo_read_only`, so a shared demo key cannot be used to alter the workspace it showcases.
 
 Keys are created in the [Pepo dashboard](https://app.joinpepo.com) by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
 
@@ -35,6 +40,12 @@ During the pilot your first key is issued to you directly, alongside your base U
 </Note>
 
 Revoking is immediate and leaves the key's usage history intact, so an audit of what a key did survives its revocation.
+
+## Sample data is a property of the workspace, not the key
+
+Some workspaces hold sample data rather than a real brand's — the public demo is one. Responses from those carry `demo: true` and say so in words.
+
+That is deliberately **not** tied to the key's mode. A test key on your own workspace reads your own videos, so it does not claim otherwise; the same mode on the demo workspace does. Reading provenance off the key would mean telling you your own data was somebody's sample.
 
 ## The workspace comes from the key
 
