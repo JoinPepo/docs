@@ -2552,10 +2552,11 @@
             "example": {
               "error": {
                 "type": "insufficient_credits",
-                "message": "This request is estimated at $5.00 and the workspace balance is $4.93.",
+                "message": "This request is estimated at $5.00. The workspace balance is $4.93, with $4.12 currently available to spend.",
                 "request_id": "req_cf6b67d5e50f4b17a44d52f4a9083d68",
                 "estimated_cost_usd": 5,
                 "balance_usd": 4.934,
+                "available_balance_usd": 4.12,
                 "suggestions": [
                   "Reduce `limit` from 50 to 20 (estimated $4.82).",
                   "Add credits at https://joinpepo.com/launch?to=billing"
@@ -4061,6 +4062,7 @@
               "message",
               "estimated_cost_usd",
               "balance_usd",
+              "available_balance_usd",
               "suggestions"
             ],
             "properties": {
@@ -4081,7 +4083,12 @@
                 "description": "What the refused call would have cost. Nothing was charged."
               },
               "balance_usd": {
-                "type": "number"
+                "type": "number",
+                "description": "The workspace's actual balance, matching GET /v1/credits. Some of it may already be tied up in other active holds."
+              },
+              "available_balance_usd": {
+                "type": "number",
+                "description": "What is currently spendable after subtracting other active holds from the actual balance."
               },
               "suggestions": {
                 "type": "array",
@@ -5633,6 +5640,14 @@
               "comment_refresh"
             ]
           },
+          "label": {
+            "type": "string",
+            "description": "Short plain-language name for this step, for showing to a person (e.g. `subject check`). Render this rather than mapping `name` yourself."
+          },
+          "description": {
+            "type": "string",
+            "description": "What this step is doing, as a sentence (e.g. `checking each video is really about this subject`)."
+          },
           "status": {
             "type": "string",
             "enum": [
@@ -5721,6 +5736,13 @@
               "string",
               "null"
             ]
+          },
+          "current_stage_label": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Plain-language name for `current_stage`, or null when no step is running."
           },
           "stages": {
             "type": "array",
