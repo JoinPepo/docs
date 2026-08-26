@@ -4,13 +4,13 @@
     "title": "Pepo API",
     "version": "1.0.0",
     "summary": "Social intelligence for marketing teams, as an API and an MCP server.",
-    "description": "Search, score and explain what is happening to a brand on social video.\n\nThis spec documents **only endpoints that are live today**. Anything specified but not shipped is deliberately absent rather than documented ahead of itself — a documented endpoint that 404s costs more trust than a short reference.\n\nTwo properties run through every response and are worth reading before the endpoint list:\n\n1. **Reliability travels in the payload.** Scores ship with the confidence, observation coverage and comparison group behind them, and with `floors_met` stating whether the evidence bar for the claim was actually cleared. The primary consumer of this API is a language model, and a model handed a bare number will restate it as a fact.\n2. **Refusals are results.** When the evidence does not support a claim, the API says so in a field rather than returning a confident number. A video with two observations is `watchlist` with a `gated_by` explanation, no matter how large its view count.",
+    "description": "Search, score and explain what is happening to a brand on social video.\n\nThis spec documents **only endpoints that are live today**. Anything specified but not shipped is deliberately absent rather than documented ahead of itself \u2014 a documented endpoint that 404s costs more trust than a short reference.\n\nTwo properties run through every response and are worth reading before the endpoint list:\n\n1. **Reliability travels in the payload.** Scores ship with the confidence, observation coverage and comparison group behind them, and with `floors_met` stating whether the evidence bar for the claim was actually cleared. The primary consumer of this API is a language model, and a model handed a bare number will restate it as a fact.\n2. **Refusals are results.** When the evidence does not support a claim, the API says so in a field rather than returning a confident number. A video with two observations is `watchlist` with a `gated_by` explanation, no matter how large its view count.",
     "contact": {
       "name": "Pepo",
       "url": "https://joinpepo.com"
     },
     "license": {
-      "name": "Proprietary — Pepo terms of service",
+      "name": "Proprietary \u2014 Pepo terms of service",
       "url": "https://joinpepo.com/terms"
     }
   },
@@ -33,6 +33,14 @@
     {
       "name": "Discovery",
       "description": "Finding and scoring video."
+    },
+    {
+      "name": "Collections",
+      "description": "Grow the corpus on demand: budgeted, unattended runs that add new video for a subject."
+    },
+    {
+      "name": "Monitors",
+      "description": "Workflows on a schedule with a hard monthly budget. `collection_topup` is the standing order that keeps a corpus current."
     }
   ],
   "paths": {
@@ -40,7 +48,7 @@
       "get": {
         "operationId": "getCredits",
         "summary": "Get credit balance",
-        "description": "Current prepaid balance for the workspace the key belongs to, and the default per-call cost ceiling. Free — this endpoint never meters.",
+        "description": "Current prepaid balance for the workspace the key belongs to, and the default per-call cost ceiling. Free \u2014 this endpoint never meters.",
         "tags": [
           "Account"
         ],
@@ -90,7 +98,7 @@
       "post": {
         "operationId": "estimateCost",
         "summary": "Estimate the cost of a call",
-        "description": "What a workflow call would cost, as a low/expected/high band with the assumptions behind it — including how many candidate videos would be analysed to return the number of results requested.\n\nFree, and deliberately prominent. An agent that can price its own plan proposes the affordable version first, which turns the per-call ceiling into something the caller cooperates with rather than collides with.",
+        "description": "What a workflow call would cost, as a low/expected/high band with the assumptions behind it \u2014 including how many candidate videos would be analysed to return the number of results requested.\n\nFree, and deliberately prominent. An agent that can price its own plan proposes the affordable version first, which turns the per-call ceiling into something the caller cooperates with rather than collides with.",
         "tags": [
           "Account"
         ],
@@ -108,9 +116,12 @@
                     "type": "string",
                     "enum": [
                       "/v1/trending",
-                      "/v1/search/videos"
+                      "/v1/search/videos",
+                      "/v1/collections",
+                      "/v1/monitors",
+                      "/v1/corpus/ask"
                     ],
-                    "description": "Which workflow to price."
+                    "description": "Which workflow to price. `/v1/monitors` prices one run of `params.workflow` and adds `runs_per_month` and `monthly_expected_usd` to `assumes`, so `monthly_cap_usd` can be set from what a recurring job will actually reach."
                   },
                   "params": {
                     "type": "object",
@@ -131,6 +142,54 @@
                         "items": {
                           "type": "string"
                         }
+                      },
+                      "treatment": {
+                        "type": "string",
+                        "enum": [
+                          "full",
+                          "collect_only"
+                        ],
+                        "default": "full",
+                        "description": "`/v1/collections` only: price collection plus the corpus run (`full`) or collection alone (`collect_only`)."
+                      },
+                      "target": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5000,
+                        "description": "`/v1/collections` and `collection_topup` monitors: posts to land per run."
+                      },
+                      "workflow": {
+                        "type": "string",
+                        "enum": [
+                          "trending",
+                          "collection_topup"
+                        ],
+                        "description": "`/v1/monitors` only: the workflow the monitor would run."
+                      },
+                      "schedule": {
+                        "type": "object",
+                        "description": "`/v1/monitors` only. Defaults to daily.",
+                        "properties": {
+                          "kind": {
+                            "type": "string",
+                            "enum": [
+                              "daily",
+                              "weekly",
+                              "interval"
+                            ]
+                          },
+                          "every_hours": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "maximum": 168
+                          }
+                        }
+                      },
+                      "hits": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 20,
+                        "description": "`/v1/corpus/ask` only: how many videos are read for the answer. Reported in `assumes.hits_considered`; the price is flat per question."
                       }
                     }
                   }
@@ -146,6 +205,21 @@
                       "platforms": [
                         "tiktok"
                       ]
+                    }
+                  }
+                },
+                "scheduled_collection": {
+                  "summary": "Price a daily collection top-up",
+                  "value": {
+                    "endpoint": "/v1/monitors",
+                    "params": {
+                      "workflow": "collection_topup",
+                      "subject": "y combinator",
+                      "target": 50,
+                      "treatment": "full",
+                      "schedule": {
+                        "kind": "daily"
+                      }
                     }
                   }
                 }
@@ -190,7 +264,7 @@
                         },
                         "assumes": {
                           "type": "object",
-                          "description": "Notably `posts_considered` — how many posts the call will read. That is what the price tracks, and what the invoice bills.",
+                          "description": "Notably `posts_considered` \u2014 how many posts the call will read. That is what the price tracks, and what the invoice bills. For `/v1/monitors`, also `runs_per_month` (30 daily, 4.3 weekly) and `monthly_expected_usd` \u2014 the per-run band times the schedule.",
                           "additionalProperties": {
                             "type": "number"
                           },
@@ -226,7 +300,7 @@
       "get": {
         "operationId": "getBrandProfile",
         "summary": "Get the brand profile",
-        "description": "The approved brand profile for this workspace — products, competitors, category, audiences, and the topics the brand refuses to be associated with. Every workflow reads it, so results are generic category noise until it exists.\n\nA workspace without one gets `200` with `status: \"needs_setup\"` and the path to fix it, **not** a `404`. The empty state is the onboarding, and a caller that receives an error on its first call abandons the task.",
+        "description": "The approved brand profile for this workspace \u2014 products, competitors, category, audiences, and the topics the brand refuses to be associated with. Every workflow reads it, so results are generic category noise until it exists.\n\nA workspace without one gets `200` with `status: \"needs_setup\"` and the path to fix it, **not** a `404`. The empty state is the onboarding, and a caller that receives an error on its first call abandons the task.",
         "tags": [
           "Account"
         ],
@@ -294,7 +368,7 @@
       "post": {
         "operationId": "setBrandProfile",
         "summary": "Create or replace the brand profile",
-        "description": "Saves the profile and makes it active immediately. Every workflow result from then on records its version in `brand_profile_version`.\n\nCall this before any workflow — they return `409 profile_required` until a profile exists, because results without one would be category noise rather than answers about your brand.\n\nReplacing a profile creates a new version rather than mutating the old one; previous versions are retained.",
+        "description": "Saves the profile and makes it active immediately. Every workflow result from then on records its version in `brand_profile_version`.\n\nCall this before any workflow \u2014 they return `409 profile_required` until a profile exists, because results without one would be category noise rather than answers about your brand.\n\nReplacing a profile creates a new version rather than mutating the old one; previous versions are retained.",
         "tags": [
           "Account"
         ],
@@ -313,7 +387,7 @@
                     "items": {
                       "type": "string"
                     },
-                    "description": "Required. Include spelling variants and nicknames — consumers rarely write your brand the way your style guide does.",
+                    "description": "Required. Include spelling variants and nicknames \u2014 consumers rarely write your brand the way your style guide does.",
                     "example": [
                       "KISS",
                       "KISS Nails"
@@ -333,6 +407,27 @@
                   },
                   "category": {
                     "type": "string"
+                  },
+                  "judge_category": {
+                    "type": "object",
+                    "description": "What counts as on-topic vs. noise when the corpus judge reads collected posts for this brand. Different from `category` (the industry label): this refines the judge's category definition. The judge never sees the brand name itself, so phrase `means`/`other` about the content, not the brand.",
+                    "required": [
+                      "means",
+                      "other"
+                    ],
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "means": {
+                        "type": "string",
+                        "description": "What on-topic content is for this brand, when judging collected posts."
+                      },
+                      "other": {
+                        "type": "string",
+                        "description": "What should be treated as noise, when judging collected posts."
+                      }
+                    }
                   },
                   "customer_problems": {
                     "type": "array",
@@ -441,7 +536,7 @@
       "post": {
         "operationId": "findTrending",
         "summary": "Find trending videos",
-        "description": "Ranked videos with a momentum score, a classification, and the evidence behind both.\n\n**A video is not trending because it has many views.** Each result is ranked as a percentile within a comparison group (same platform, comparable creators) and against the creator's own baseline, and a classification above `watchlist` requires at least **3 metric snapshots across at least 12 hours**. Anything thinner is capped at `watchlist` with `gated_by` explaining why — including videos with very large view counts.\n\nThe trend-level verdict is reported separately from the per-video ranking, because one video outperforming is virality, not a movement.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "Ranked videos with a momentum score, a classification, and the evidence behind both.\n\n**A video is not trending because it has many views.** Each result is ranked as a percentile within a comparison group (same platform, comparable creators) and against the creator's own baseline, and a classification above `watchlist` requires at least **3 metric snapshots across at least 12 hours**. Anything thinner is capped at `watchlist` with `gated_by` explaining why \u2014 including videos with very large view counts.\n\nThe trend-level verdict is reported separately from the per-video ranking, because one video outperforming is virality, not a movement.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -466,7 +561,7 @@
                   "window": {
                     "type": "string",
                     "pattern": "^\\d+[hd]$",
-                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 — it is never silently widened to the whole corpus.",
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus.",
                     "example": "7d"
                   },
                   "limit": {
@@ -543,7 +638,7 @@
       "post": {
         "operationId": "shareOfVoice",
         "summary": "Compare share of voice against competitors",
-        "description": "Share of observed views between this brand and its configured competitors, over the corpus already collected.\n\n**This is not ad impressions.** Views are observed content views; an impression is an ad-delivery event. The two are not interchangeable and this response must never be presented as impression share.\n\n**Check `reliable` before quoting a percentage.** A corpus collected by searching for your own brand cannot measure your share of it — you dominate it by construction. The endpoint derives how the corpus was gathered from the collection runs behind it (`corpus_origin`) and refuses to endorse a split it cannot support, returning the numbers alongside the reason they should not be quoted.\n\nOrganic and paid activity are not separated: nothing in the corpus records whether a post was promoted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "Share of observed views between this brand and its configured competitors, over the corpus already collected.\n\n**This is not ad impressions.** Views are observed content views; an impression is an ad-delivery event. The two are not interchangeable and this response must never be presented as impression share.\n\n**Check `reliable` before quoting a percentage.** A corpus collected by searching for your own brand cannot measure your share of it \u2014 you dominate it by construction. The endpoint derives how the corpus was gathered from the collection runs behind it (`corpus_origin`) and refuses to endorse a split it cannot support, returning the numbers alongside the reason they should not be quoted.\n\nOrganic and paid activity are not separated: nothing in the corpus records whether a post was promoted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -621,7 +716,7 @@
       "post": {
         "operationId": "competitorReport",
         "summary": "Report on what a competitor changed",
-        "description": "What changed for a competitor between the last two equal-length periods, decomposed into the creators, videos or platforms that caused it, with an annotated attention timeline naming the videos behind each peak.\n\n**The breakdown reconciles or it is not shown.** A waterfall's whole visual claim is \"here is the change, and here is what it was made of\", so the parts must sum to the whole exactly — including after truncation, which produces an explicit remainder row rather than dropping the tail. `reconciles` is computed, not assumed.\n\n**Check `comparable` first.** A period-over-period comparison across an unevenly collected corpus measures the collection, not the market: a competitor 'gaining' between two windows may only mean we searched harder the second time.\n\nComparative product and SKU bars are **not available** — the profile holds no competitor SKUs and nothing resolves a caption to a competitor's product line, so ranking them would mean inventing the categories. This is stated in `unavailable` rather than omitted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "What changed for a competitor between the last two equal-length periods, decomposed into the creators, videos or platforms that caused it, with an annotated attention timeline naming the videos behind each peak.\n\n**The breakdown reconciles or it is not shown.** A waterfall's whole visual claim is \"here is the change, and here is what it was made of\", so the parts must sum to the whole exactly \u2014 including after truncation, which produces an explicit remainder row rather than dropping the tail. `reconciles` is computed, not assumed.\n\n**Check `comparable` first.** A period-over-period comparison across an unevenly collected corpus measures the collection, not the market: a competitor 'gaining' between two windows may only mean we searched harder the second time.\n\nComparative product and SKU bars are **not available** \u2014 the profile holds no competitor SKUs and nothing resolves a caption to a competitor's product line, so ranking them would mean inventing the categories. This is stated in `unavailable` rather than omitted.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -706,7 +801,7 @@
       "post": {
         "operationId": "productInsights",
         "summary": "What people say about a product or SKU",
-        "description": "Purchase drivers, complaints, needs and use cases for this brand's products, drawn from the captions and comments of posts that name a product.\n\n**A theme mentioned twice is not a finding.** Themes below three distinct sources are returned in `seen_not_established` rather than in `findings` — visible and countable, but never rankable. A two-mention theme rendered as a bar reads as a product problem, and that is the specific mistake this split exists to prevent.\n\n**Quotes are verbatim.** Every finding carries the exact text and the id it came from, because a finding whose evidence is a paraphrase cannot be checked.\n\n**Count voices, not mentions.** Five comments from one account is one person; `voices` is reported alongside `sources` so a single loud detractor cannot become \"a widely reported issue\".\n\nThemes are multi-label — \"love the texture but it broke me out\" is a driver and a complaint — so counts deliberately do not sum to `sources_considered`.\n\nReddit, reviews and timestamped video evidence are **absent, not thin**, and say so in `unavailable`.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "Purchase drivers, complaints, needs and use cases for this brand's products, drawn from the captions and comments of posts that name a product.\n\n**A theme mentioned twice is not a finding.** Themes below three distinct sources are returned in `seen_not_established` rather than in `findings` \u2014 visible and countable, but never rankable. A two-mention theme rendered as a bar reads as a product problem, and that is the specific mistake this split exists to prevent.\n\n**Quotes are verbatim.** Every finding carries the exact text and the id it came from, because a finding whose evidence is a paraphrase cannot be checked.\n\n**Count voices, not mentions.** Five comments from one account is one person; `voices` is reported alongside `sources` so a single loud detractor cannot become \"a widely reported issue\".\n\nThemes are multi-label \u2014 \"love the texture but it broke me out\" is a driver and a complaint \u2014 so counts deliberately do not sum to `sources_considered`.\n\nReddit, reviews and timestamped video evidence are **absent, not thin**, and say so in `unavailable`.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -781,7 +876,7 @@
       "post": {
         "operationId": "discoverCreators",
         "summary": "Find creators for a product, topic or audience",
-        "description": "Creators in this brand's corpus with median views, median engagement, best post, consistency, the competitors they also post about, and brand-safety flags.\n\n**Medians, not averages.** One 486K video against nine 3K videos averages to 51K, which describes none of the ten and flatters the creator enormously. `bestViews` is reported alongside so a one-hit creator is visible as one.\n\n**A creator with one post is not ranked.** One post has no median and no dispersion; those creators come back in `single_post_creators`, present and countable but never comparable with the ranked list.\n\n**Post count is a fact about our search.** Creators are here because their posts matched what was collected, so `postsInCorpus` is never their output.\n\n**A brand-safety flag is a hit, never a clearance.** Screening is keyword-based over captions only — it cannot see video content, audio, or posts outside this corpus. Zero flags means nothing matched, not that a creator is safe, and `safety_statement` must travel with any safety claim.\n\nFollower counts, demographics and audience overlap are not collected, so nothing here says whether a creator's audience is yours. Observed views are not reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "Creators in this brand's corpus with median views, median engagement, best post, consistency, the competitors they also post about, and brand-safety flags.\n\n**Medians, not averages.** One 486K video against nine 3K videos averages to 51K, which describes none of the ten and flatters the creator enormously. `bestViews` is reported alongside so a one-hit creator is visible as one.\n\n**A creator with one post is not ranked.** One post has no median and no dispersion; those creators come back in `single_post_creators`, present and countable but never comparable with the ranked list.\n\n**Post count is a fact about our search.** Creators are here because their posts matched what was collected, so `postsInCorpus` is never their output.\n\n**A brand-safety flag is a hit, never a clearance.** Screening is keyword-based over captions only \u2014 it cannot see video content, audio, or posts outside this corpus. Zero flags means nothing matched, not that a creator is safe, and `safety_statement` must travel with any safety claim.\n\nFollower counts, demographics and audience overlap are not collected, so nothing here says whether a creator's audience is yours. Observed views are not reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -865,7 +960,7 @@
       "post": {
         "operationId": "analyzeCampaign",
         "summary": "Measure social response to a campaign or launch",
-        "description": "What happened around a campaign or product launch: an annotated timeline, a reconciling contribution waterfall by SKU, creator, video or platform, and an ownership split — over equal-length windows either side of the launch.\n\n**This is not paid-owned-earned; it is owned versus not-owned.** Owned is derivable, because a post from a connected account is the brand's. Paid versus earned is not derivable from anything: a sponsored creator post and an organic fan post are identical in this corpus. Caption-based `#ad` detection was considered and rejected — disclosure is inconsistent, and treating its absence as evidence of organic reach would be worse than having no split. Two buckets that are true beat three where one is invented.\n\n**It is not causal.** There is no control group and no counterfactual. Anything rising for an unrelated reason rises here too, so this describes what happened around the launch, not what the launch caused.\n\n**Response by market is unavailable** — posts carry no country, region or language. The markets on the brand profile describe who the brand sells to, not where a viewer was.\n\nEqual-length windows are used on both sides deliberately: comparing \"since launch\" against \"everything before\" makes the lift depend on how far back the corpus happens to reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
+        "description": "What happened around a campaign or product launch: an annotated timeline, a reconciling contribution waterfall by SKU, creator, video or platform, and an ownership split \u2014 over equal-length windows either side of the launch.\n\n**This is not paid-owned-earned; it is owned versus not-owned.** Owned is derivable, because a post from a connected account is the brand's. Paid versus earned is not derivable from anything: a sponsored creator post and an organic fan post are identical in this corpus. Caption-based `#ad` detection was considered and rejected \u2014 disclosure is inconsistent, and treating its absence as evidence of organic reach would be worse than having no split. Two buckets that are true beat three where one is invented.\n\n**It is not causal.** There is no control group and no counterfactual. Anything rising for an unrelated reason rises here too, so this describes what happened around the launch, not what the launch caused.\n\n**Response by market is unavailable** \u2014 posts carry no country, region or language. The markets on the brand profile describe who the brand sells to, not where a viewer was.\n\nEqual-length windows are used on both sides deliberately: comparing \"since launch\" against \"everything before\" makes the lift depend on how far back the corpus happens to reach.\n\nCosts credits. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Discovery"
         ],
@@ -957,7 +1052,7 @@
       "post": {
         "operationId": "searchVideos",
         "summary": "Search the video corpus",
-        "description": "Find videos in this workspace's corpus by topic, product or creator.\n\n**Read `search_method` on every response.** Today this searches stored captions and creator handles only. Transcripts, on-screen text, detected products and logos, and audio are not in the corpus yet, so an empty result means *not found in captions* — never *no such video exists*. That distinction matters if you are about to report that a topic has no coverage.\n\nCosts credits.",
+        "description": "Find videos in this workspace's corpus by topic, product or creator.\n\n**Read `search_method` on every response.** Today this searches stored captions and creator handles only. Transcripts, on-screen text, detected products and logos, and audio are not in the corpus yet, so an empty result means *not found in captions* \u2014 never *no such video exists*. That distinction matters if you are about to report that a topic has no coverage.\n\nCosts credits.",
         "tags": [
           "Discovery"
         ],
@@ -982,7 +1077,7 @@
                     "type": "string",
                     "example": "7d",
                     "pattern": "^\\d+[hd]$",
-                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 — it is never silently widened to the whole corpus."
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus."
                   },
                   "limit": {
                     "type": "integer",
@@ -1049,11 +1144,198 @@
         }
       }
     },
+    "/v1/corpus/ask": {
+      "post": {
+        "operationId": "askCorpus",
+        "summary": "Ask a question of the indexed footage",
+        "description": "Answer a natural-language question from what the videos in this workspace actually SAY and SHOW \u2014 transcripts, visuals and audio of the footage a full-treatment collection run indexed \u2014 with a citation (creator, URL, timestamps) under every paragraph.\n\nThis is the tool for \"what do people say in these videos\". `/v1/search/videos` matches captions and handles; this reads the footage. Retrieval is a semantic search over the brand's video index; each of the top `hits` videos is then read for the answer. When a video cannot be read live (asset gone, quota, lost shared analyze lease) the worker's stored analysis stands in and `sources[].method` says so.\n\n**`answer: null` is a 200, not an error.** `reason: \"no_index\"` means nothing has been indexed for this workspace yet \u2014 a collection run with `treatment: \"full\"` builds the index and nothing is billed. `reason: \"no_hits\"` means no indexed video matched within the window: *not in the indexed footage*, never *nobody said it*. Only one video per duplicate cluster is indexed, so `index_videos` is smaller than the corpus.\n\nCosts credits: one flat `corpus_question` per question, regardless of `hits`. Exception: a fully provider-degraded result with no live footage read is unbilled; a partial degradation is still billed.",
+        "tags": [
+          "Discovery"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "question"
+                ],
+                "properties": {
+                  "question": {
+                    "type": "string",
+                    "maxLength": 1000,
+                    "description": "The question, in plain language, e.g. \"what do founders say about fundraising?\""
+                  },
+                  "hits": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 20,
+                    "default": 8,
+                    "description": "How many top-ranked videos are read for the answer. Breadth, not price \u2014 the question is billed flat."
+                  },
+                  "window": {
+                    "type": "string",
+                    "example": "7d",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back to look, e.g. `24h`, `7d`, `30d`. An unparseable value is a 400 \u2014 it is never silently widened to the whole corpus."
+                  },
+                  "max_cost_usd": {
+                    "type": "number",
+                    "exclusiveMinimum": 0
+                  }
+                }
+              },
+              "examples": {
+                "founders": {
+                  "summary": "What founders say",
+                  "value": {
+                    "question": "what do founders say about raising a seed round?",
+                    "hits": 5
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The answer with citations \u2014 or `answer: null` with a `reason` when there is nothing to answer from.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CorpusAskResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "409": {
+            "$ref": "#/components/responses/ProfileRequired"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "503": {
+            "$ref": "#/components/responses/ProviderUnavailable"
+          }
+        }
+      }
+    },
+    "/v1/corpus/coverage-gaps": {
+      "get": {
+        "operationId": "coverageGaps",
+        "summary": "What ask_corpus/search_videos could not answer",
+        "description": "Recent questions asked through `POST /v1/corpus/ask` and `POST /v1/search/videos`, grouped into thin/no coverage vs. answered fine. `thin` is exactly what each handler already knew at response time \u2014 `ask_corpus` returning `reason` (`no_index`/`no_hits`), or `search_videos` matching nothing (`empty_corpus` when the corpus itself was empty for the filters, `no_caption_match` when it was not) \u2014 never a threshold recomputed here. Each group carries its count, first/last asked timestamp, and up to 50 of the underlying questions with their own result count and reason.\n\nFree. Use this to see what this workspace is asking the corpus that it cannot answer, then close the gap: grow search terms with `POST /v1/monitors` (a new `collection_topup` schedule) or `POST /v1/monitors/{monitor_id}/update` (`add_subjects` on an existing one), or fix an on-category miss with `POST /v1/brand-profile` (`judge_category`, `hashtags`, `brand_names`). This endpoint only surfaces the gap \u2014 it never changes a schedule or a profile itself.\n\n`truncated: true` means the scan hit its 2,000-row cap before covering the whole window; the counts are a floor, not a total, for a workspace that busy. Live keys only: the log contains verbatim questions from live users, so test keys receive 403 test_key_forbidden \u2014 the one read endpoint test mode does not get.",
+        "tags": [
+          "Discovery"
+        ],
+        "parameters": [
+          {
+            "name": "window_days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 90,
+              "default": 30
+            },
+            "description": "How far back to look. Defaults to 30, capped at 90."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recent questions, grouped by coverage.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "window_days",
+                    "scanned",
+                    "truncated",
+                    "thin",
+                    "answered",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "window_days": {
+                      "type": "integer"
+                    },
+                    "scanned": {
+                      "type": "integer",
+                      "description": "Rows read from the window, up to the 2,000-row scan cap."
+                    },
+                    "truncated": {
+                      "type": "boolean",
+                      "description": "The scan hit its cap \u2014 there may be more questions in the window than these counts show."
+                    },
+                    "thin": {
+                      "$ref": "#/components/schemas/CoverageGapGroup"
+                    },
+                    "answered": {
+                      "$ref": "#/components/schemas/CoverageGapGroup"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "description": "Test key: this endpoint serves verbatim live-user question text and is refused in test mode (`test_key_forbidden`).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "type": "test_key_forbidden",
+                    "message": "Test keys cannot read coverage gaps: the log contains verbatim questions from live users. Use a live key.",
+                    "request_id": "req_example"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/videos/{video_id}": {
       "get": {
         "operationId": "getVideo",
         "summary": "Get one video",
-        "description": "Full detail for a single video: engagement, the metric history behind any momentum claim, and a sample of comments with their tone **and the coverage of that tone**.\n\nUse the coverage. A tone split computed over 3 classified comments of 1,840 sampled is not the same claim as one computed over 1,800, and the split alone cannot tell them apart.",
+        "description": "Full detail for a single video: engagement, the metric history behind any momentum claim, a sample of comments with their tone **and the coverage of that tone**, the stored read of what the video says (`analysis`), and the playable file when one was captured (`media`).\n\n`media.video_url_kind` tells you what `media.video_url` is worth: `stored` is a durable copy that keeps playing, `cdn_signed` is a signed platform url that expires within hours of ingest \u2014 play it if it loads, but keep `video.thumb_url` and `video.url` as the fallback.\n\nUse the coverage. A tone split computed over 3 classified comments of 1,840 sampled is not the same claim as one computed over 1,800, and the split alone cannot tell them apart.",
         "tags": [
           "Discovery"
         ],
@@ -1083,7 +1365,7 @@
             "$ref": "#/components/responses/Unauthorized"
           },
           "404": {
-            "description": "No video with that id in this workspace. Returned identically for an id that does not exist and one belonging to another workspace — the difference would be an existence oracle across tenants.",
+            "description": "No video with that id in this workspace. Returned identically for an id that does not exist and one belonging to another workspace \u2014 the difference would be an existence oracle across tenants.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1165,12 +1447,1051 @@
                     },
                     "quality": {
                       "type": "object",
-                      "description": "Row count, platform mix, duplicates, per-field gaps with their consequence, real time span, stated limitations, a verification block distinguishing 'complete' from 'confirmed', and stacked composition. `composition.unavailable` names the axes with no data behind them (market has no geography anywhere in the corpus; category is a single brand-level value, so its bar would be one segment at 100%) — report those as unavailable rather than as empty."
+                      "description": "Row count, platform mix, duplicates, per-field gaps with their consequence, real time span, stated limitations, a verification block distinguishing 'complete' from 'confirmed', and stacked composition. `composition.unavailable` names the axes with no data behind them (market has no geography anywhere in the corpus; category is a single brand-level value, so its bar would be one segment at 100%) \u2014 report those as unavailable rather than as empty."
                     },
                     "request_id": {
                       "type": "string"
                     }
                   }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections": {
+      "post": {
+        "operationId": "createCollection",
+        "summary": "Start a collection run",
+        "description": "Starts an unattended job that searches a provider for `subject` and adds matching videos to this workspace's corpus. `budget_usd` is required \u2014 a collection spends provider credits unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/collections\"`) and pass that estimate's `expected` cost as `budget_usd`.\n\nReturns 202: the run is accepted, not finished. Rows land as they are collected and are searchable immediately, flagged unverified until judged. Billing settles at the end for what actually landed, never for the estimate. Poll `GET /v1/collections/{collection_id}` for progress.\n\nBy default the run carries the **full treatment**: once collection ends, a corpus run judges the rows for subject collision, enriches metrics, clusters near-duplicates, analyses and indexes each video, and collects and reads ~20 comments per post. `budget_usd` must cover collection and treatment together (estimate with `treatment` set); the collection settles its own line and the corpus run settles once more, at the end, for the stages that actually ran. Pass `treatment: \"collect_only\"` for rows alone.",
+        "tags": [
+          "Collections"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "subject",
+                  "budget_usd"
+                ],
+                "properties": {
+                  "subject": {
+                    "type": "string",
+                    "description": "The search phrase the provider collects for, e.g. \"y combinator\". One subject per run \u2014 start several runs for several subjects."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "tiktok",
+                        "instagram"
+                      ]
+                    },
+                    "description": "Defaults to both."
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back to collect, e.g. \"7d\", \"30d\". Defaults to 7d."
+                  },
+                  "target": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5000,
+                    "default": 100,
+                    "description": "How many videos to collect."
+                  },
+                  "budget_usd": {
+                    "type": "number",
+                    "exclusiveMinimum": 0,
+                    "description": "Required hard ceiling for this run's spend."
+                  },
+                  "treatment": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "collect_only"
+                    ],
+                    "default": "full",
+                    "description": "What happens to the rows once they land. `full` (default) hands them to a corpus run \u2014 judge, enrich, dedup, analyze, index, comments, sentiment, comment refresh \u2014 priced at about $0.39 per landed post on top of collection and billed only for the stages that actually run; its progress appears as `corpus_run` on the collection. `collect_only` stops at the rows ($0.02/post), flagged unverified."
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "Optional. With the full treatment, POSTed a `corpus_run.completed` event `{event, collection_id, corpus_run_id, status, cost_usd, stages, warnings}` when the corpus run finishes. Best effort, 5s timeout."
+                  }
+                }
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Collect 100 TikTok + Instagram posts",
+                  "value": {
+                    "subject": "y combinator",
+                    "platforms": [
+                      "tiktok",
+                      "instagram"
+                    ],
+                    "window": "7d",
+                    "target": 100,
+                    "budget_usd": 2.5
+                  }
+                },
+                "full_treatment": {
+                  "summary": "Collect 50 posts and run the full treatment",
+                  "value": {
+                    "subject": "y combinator",
+                    "target": 50,
+                    "treatment": "full",
+                    "budget_usd": 20
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. The run has started; it is not finished.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collection": {
+                      "$ref": "#/components/schemas/Collection"
+                    },
+                    "estimate": {
+                      "type": "object",
+                      "properties": {
+                        "cost_usd": {
+                          "type": "object",
+                          "properties": {
+                            "low": {
+                              "type": "number"
+                            },
+                            "expected": {
+                              "type": "number"
+                            },
+                            "high": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "assumes": {
+                          "type": "object",
+                          "additionalProperties": true
+                        },
+                        "eta_minutes": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Either `invalid_request` (a required field is missing or malformed) or `budget_too_low` (the estimated cost of this run is above `budget_usd`; see BudgetTooLowError for its extra fields). Nothing is started or charged in either case.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "$ref": "#/components/schemas/InvalidRequestError"
+                    },
+                    {
+                      "$ref": "#/components/schemas/BudgetTooLowError"
+                    }
+                  ]
+                },
+                "examples": {
+                  "missingBudget": {
+                    "summary": "budget_usd omitted",
+                    "value": {
+                      "error": {
+                        "type": "invalid_request",
+                        "message": "budget_usd is required. A collection spends provider credits unattended, so its budget is not optional \u2014 call POST /v1/estimate with endpoint \"/v1/collections\" first.",
+                        "request_id": "req_\u2026",
+                        "field": "budget_usd"
+                      }
+                    }
+                  },
+                  "budgetTooLow": {
+                    "summary": "budget_usd below the estimate",
+                    "value": {
+                      "error": {
+                        "type": "budget_too_low",
+                        "message": "Collecting 500 posts is estimated at $8.40; budget_usd is $5.00. Lower target or raise the budget.",
+                        "request_id": "req_\u2026",
+                        "estimated_cost_usd": 8.4,
+                        "budget_usd": 5,
+                        "field": "budget_usd"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listCollections",
+        "summary": "List collection runs",
+        "description": "Recent collection runs for this workspace, most recent first.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 20
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Collection runs.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collections": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Collection"
+                      }
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/collections/{collection_id}": {
+      "get": {
+        "operationId": "getCollection",
+        "summary": "Get one collection run",
+        "description": "Status of one collection run: collected vs target, coverage, cost so far, whether billing has settled, and why if it stopped early. Poll this after `POST /v1/collections`.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The collection run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collection": {
+                      "$ref": "#/components/schemas/Collection"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such collection in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections/{collection_id}/cancel": {
+      "post": {
+        "operationId": "cancelCollection",
+        "summary": "Cancel a collection run",
+        "description": "Stops a running collection early. Billing settles for whatever landed before the cancel, never for the full budget \u2014 the settle is once-only, so a racing in-flight step cannot double-bill. Rows already collected stay in the corpus and remain searchable.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "collection_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled (or already terminal).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collection": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such collection in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/corpus-runs/{corpus_run_id}": {
+      "get": {
+        "operationId": "getCorpusRun",
+        "summary": "Get one corpus run",
+        "description": "Status of the staged pipeline behind a full-treatment collection: which stage it is on, what each stage kept and cost, ETA, quality-gate warnings, and whether billing has settled. The same view is embedded as `corpus_run` on `GET /v1/collections/{collection_id}`, so this exists for callers that hold only the run id (for example from the webhook). Free.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "corpus_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The corpus run.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "corpus_run": {
+                      "$ref": "#/components/schemas/CorpusRun"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such corpus run in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/corpus-runs/{corpus_run_id}/cancel": {
+      "post": {
+        "operationId": "cancelCorpusRun",
+        "summary": "Cancel a corpus run",
+        "description": "Stops the pipeline. A queued run is cancelled outright and the hold it carried is released. A running run finishes the stage it is on, then stops; it is billed only for the stages that completed. Rows already collected stay in the corpus.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "corpus_run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cancelled (or already terminal).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "corpus_run": {
+                      "type": "object",
+                      "properties": {
+                        "id": {
+                          "type": "string"
+                        },
+                        "status": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such corpus run in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/monitors": {
+      "post": {
+        "operationId": "createMonitor",
+        "summary": "Create a monitor (a workflow on a schedule)",
+        "description": "Saves a workflow on a schedule with a hard monthly budget. `monthly_cap_usd` is required: a monitor runs unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/monitors\"`), which returns the per-run cost and `monthly_expected_usd`.\n\nTwo workflows run today. `trending` re-reads the stored corpus each tick. `collection_topup` is the standing order of corpus jobs Tier 2: each tick starts one `/v1/collections` run per subject in `params.subjects` (1-10 search phrases; `params.subject` accepts a single phrase as `[subject]` for back-compat \u2014 provide one or the other, not both), in array order, re-checking the remaining cap before each subject so a cap can stop the fan-out partway through (skipped subjects are attempted again next tick). Each collection uses the same `target` posts and `treatment` (full or collect_only), reserving its expected cost against the monthly cap; it settles for what actually landed \u2014 and, with the full treatment, the corpus run settles once more for the stages that ran \u2014 and the difference returns to the budget. A run whose expected cost does not fit what remains is recorded as `skipped_budget`; with `pause_at_cap` (default) the monitor pauses at the cap until the period rolls. Grow or shrink the subject list later, or change `target`/`monthly_cap_usd`, with `POST /v1/monitors/{monitor_id}/update` \u2014 no need to recreate the schedule.\n\n`webhook_url`, when set, receives `monitor.run.completed` \u2014 for `collection_topup` when a collection (collect_only) or its corpus run (full) has settled, with `collection_id`, `corpus_run_id`, `cost_usd` and a summary; a multi-subject tick fires one `monitor.run.completed` per subject as each of its collections settles.",
+        "tags": [
+          "Monitors"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "workflow",
+                  "monthly_cap_usd"
+                ],
+                "properties": {
+                  "workflow": {
+                    "type": "string",
+                    "enum": [
+                      "trending",
+                      "collection_topup"
+                    ]
+                  },
+                  "params": {
+                    "type": "object",
+                    "description": "`collection_topup`: exactly one of `subject` or `subjects` (required), `target` (required, 1\u20135000 per run), `platforms` (default both), `window` (default \"7d\"), `treatment` (default \"full\"). `trending`: the `/v1/trending` body.",
+                    "properties": {
+                      "subject": {
+                        "type": "string",
+                        "description": "A single search phrase. Equivalent to `subjects: [subject]`. Provide this or `subjects`, not both."
+                      },
+                      "subjects": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "minItems": 1,
+                        "maxItems": 10,
+                        "description": "1-10 search phrases each tick fans out over, in order. Trimmed and deduped case-insensitively. Provide this or `subject`, not both."
+                      },
+                      "platforms": {
+                        "type": "array",
+                        "items": {
+                          "type": "string",
+                          "enum": [
+                            "tiktok",
+                            "instagram"
+                          ]
+                        }
+                      },
+                      "window": {
+                        "type": "string",
+                        "pattern": "^\\d+[hd]$"
+                      },
+                      "target": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 5000
+                      },
+                      "treatment": {
+                        "type": "string",
+                        "enum": [
+                          "full",
+                          "collect_only"
+                        ],
+                        "default": "full"
+                      }
+                    }
+                  },
+                  "schedule": {
+                    "type": "object",
+                    "description": "Defaults to every 24 hours.",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "enum": [
+                          "daily",
+                          "weekly",
+                          "interval"
+                        ]
+                      },
+                      "every_hours": {
+                        "type": "integer",
+                        "minimum": 1,
+                        "maximum": 168
+                      },
+                      "time_utc": {
+                        "type": "string",
+                        "description": "HH:MM UTC for daily/weekly. Defaults to 09:00."
+                      }
+                    }
+                  },
+                  "monthly_cap_usd": {
+                    "type": "number",
+                    "minimum": 0.05,
+                    "maximum": 10000,
+                    "description": "Required hard ceiling per rolling 30-day period. Must cover at least one run."
+                  },
+                  "pause_at_cap": {
+                    "type": "boolean",
+                    "default": true
+                  },
+                  "webhook_url": {
+                    "type": "string",
+                    "format": "uri"
+                  }
+                }
+              },
+              "examples": {
+                "daily_topup": {
+                  "summary": "50 posts a day on a subject, full treatment",
+                  "value": {
+                    "workflow": "collection_topup",
+                    "params": {
+                      "subject": "y combinator",
+                      "platforms": [
+                        "tiktok",
+                        "instagram"
+                      ],
+                      "window": "7d",
+                      "target": 50,
+                      "treatment": "full"
+                    },
+                    "schedule": {
+                      "kind": "daily",
+                      "time_utc": "09:00"
+                    },
+                    "monthly_cap_usd": 650,
+                    "webhook_url": "https://example.com/hooks/pepo"
+                  }
+                },
+                "multi_subject_topup": {
+                  "summary": "One schedule fanning out over three search terms",
+                  "value": {
+                    "workflow": "collection_topup",
+                    "params": {
+                      "subjects": [
+                        "y combinator",
+                        "techstars",
+                        "dorm room startups"
+                      ],
+                      "platforms": [
+                        "tiktok",
+                        "instagram"
+                      ],
+                      "window": "7d",
+                      "target": 50,
+                      "treatment": "collect_only"
+                    },
+                    "schedule": {
+                      "kind": "daily",
+                      "time_utc": "09:00"
+                    },
+                    "monthly_cap_usd": 90
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Created and active.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "monitor",
+                    "estimate",
+                    "note",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "monitor": {
+                      "$ref": "#/components/schemas/Monitor"
+                    },
+                    "estimate": {
+                      "type": "object",
+                      "description": "One run of the workflow, and in `assumes` the month: `runs_per_month` and `monthly_expected_usd`.",
+                      "properties": {
+                        "cost_usd": {
+                          "type": "object",
+                          "properties": {
+                            "low": {
+                              "type": "number"
+                            },
+                            "expected": {
+                              "type": "number"
+                            },
+                            "high": {
+                              "type": "number"
+                            }
+                          }
+                        },
+                        "assumes": {
+                          "type": "object",
+                          "additionalProperties": true
+                        }
+                      }
+                    },
+                    "note": {
+                      "type": "string"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: an unsupported workflow, a missing or malformed param (the message names it), or a cap below one run's expected cost.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          }
+        }
+      },
+      "get": {
+        "operationId": "listMonitors",
+        "summary": "List monitors",
+        "description": "Every monitor in the workspace with its budget consumed, next run and \u2014 for `collection_topup` \u2014 the collection its latest run started.",
+        "tags": [
+          "Monitors"
+        ],
+        "responses": {
+          "200": {
+            "description": "The monitors.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "monitors",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "monitors": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Monitor"
+                      }
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/monitors/cancel": {
+      "post": {
+        "operationId": "pauseMonitor",
+        "summary": "Pause a monitor",
+        "description": "Pauses the monitor: no further runs are scheduled. A collection already started by its last run carries on and settles normally.",
+        "tags": [
+          "Monitors"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "monitor_id"
+                ],
+                "properties": {
+                  "monitor_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Paused.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "status",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "enum": [
+                        "paused"
+                      ]
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "404": {
+            "description": "No such monitor in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/monitors/{monitor_id}": {
+      "get": {
+        "operationId": "getMonitor",
+        "summary": "Get a monitor and its recent runs",
+        "description": "The monitor plus its last 10 runs, newest first. For `collection_topup` each run carries the `collection_id` it started; a run's `cost_usd` is the reservation until that collection settles, then the actual charge.",
+        "tags": [
+          "Monitors"
+        ],
+        "parameters": [
+          {
+            "name": "monitor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The monitor and its runs.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "monitor",
+                    "runs",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "monitor": {
+                      "$ref": "#/components/schemas/Monitor"
+                    },
+                    "runs": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MonitorRun"
+                      }
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such monitor in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/monitors/{monitor_id}/update": {
+      "post": {
+        "operationId": "updateMonitor",
+        "summary": "Grow or shrink a scheduled collection",
+        "description": "Updates a `collection_topup` schedule in place \u2014 the way its search terms expand as the corpus grows. `add_subjects` and `remove_subjects` (by exact string) edit the subject list (removals apply before additions, so one call can swap a stale term for a fresh one without tripping the 10-subject ceiling); `target` and `monthly_cap_usd` can also change. Removing every subject is refused \u2014 pause the schedule with `POST /v1/monitors/cancel` instead. The same floor as creation applies: `monthly_cap_usd` must cover at least one run at the (possibly new) `target`. `window`, `platforms` and `treatment` are fixed for the life of a schedule; cancel and recreate for those. Returns the updated schedule in the same shape as `GET /v1/monitors/{monitor_id}`.",
+        "tags": [
+          "Monitors"
+        ],
+        "parameters": [
+          {
+            "name": "monitor_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "add_subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Search phrases to add, subject to the same 1-10 total and 500-character limits as creation. Deduped case-insensitively against what is already scheduled."
+                  },
+                  "remove_subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Exact-string subjects to remove. Applied before add_subjects."
+                  },
+                  "target": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5000
+                  },
+                  "monthly_cap_usd": {
+                    "type": "number",
+                    "minimum": 0.05,
+                    "maximum": 10000
+                  }
+                }
+              },
+              "examples": {
+                "grow": {
+                  "summary": "Add a search term the corpus should also track",
+                  "value": {
+                    "add_subjects": [
+                      "dorm room startups"
+                    ]
+                  }
+                },
+                "swap": {
+                  "summary": "Retire a stale term, add a fresh one",
+                  "value": {
+                    "remove_subjects": [
+                      "last quarter's launch"
+                    ],
+                    "add_subjects": [
+                      "this quarter's launch"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "monitor",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "monitor": {
+                      "$ref": "#/components/schemas/Monitor"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`invalid_request`: not a `collection_topup` schedule, a malformed field, removing every subject, more than 10 subjects after adding, or a cap below one run's expected cost.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidRequestError"
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "404": {
+            "description": "No such monitor in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }
@@ -1184,7 +2505,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "A workspace-scoped API key: `Authorization: Bearer pk_live_…`.\n\nThe workspace is derived from the key. **No endpoint accepts a brand or tenant identifier**, and none ever will — an identifier that travels through a language model is a cross-tenant leak waiting for a prompt injection. `X-Api-Key` is accepted as an alternative header for hosts that cannot set `Authorization`."
+        "description": "A workspace-scoped API key: `Authorization: Bearer pk_live_\u2026`.\n\nThe workspace is derived from the key. **No endpoint accepts a brand or tenant identifier**, and none ever will \u2014 an identifier that travels through a language model is a cross-tenant leak waiting for a prompt injection. `X-Api-Key` is accepted as an alternative header for hosts that cannot set `Authorization`."
       }
     },
     "headers": {
@@ -1222,7 +2543,7 @@
         }
       },
       "InsufficientCredits": {
-        "description": "The request would exceed the workspace balance, so no work was started and nothing was charged. The error carries cheaper plans that do fit — an error that says only \"no\" ends an agent's task.",
+        "description": "The request would exceed the workspace balance, so no work was started and nothing was charged. The error carries cheaper plans that do fit \u2014 an error that says only \"no\" ends an agent's task.",
         "content": {
           "application/json": {
             "schema": {
@@ -1237,7 +2558,7 @@
                 "balance_usd": 4.934,
                 "suggestions": [
                   "Reduce `limit` from 50 to 20 (estimated $4.82).",
-                  "Add credits at https://app.joinpepo.com/settings/billing"
+                  "Add credits at https://joinpepo.com/launch?to=billing"
                 ]
               }
             }
@@ -1255,7 +2576,7 @@
               "error": {
                 "type": "profile_required",
                 "message": "This workspace has no approved brand profile.",
-                "request_id": "req_…",
+                "request_id": "req_\u2026",
                 "next": {
                   "endpoint": "POST /v1/brand-profile/propose",
                   "required_fields": [
@@ -1279,8 +2600,44 @@
               "error": {
                 "type": "invalid_request",
                 "message": "Could not parse window \"7dd\". Use a number followed by h or d, e.g. \"24h\" or \"7d\".",
-                "request_id": "req_…",
+                "request_id": "req_\u2026",
                 "field": "window"
+              }
+            }
+          }
+        }
+      },
+      "TestKeyReadOnly": {
+        "description": "This request was made with a `pk_test_` key. Test keys are read-only \u2014 this call spends provider credits, so it requires a live key.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": {
+                "type": "test_read_only",
+                "message": "This is a test key, and test keys are read-only. A collection calls a paid provider \u2014 start it with a live key.",
+                "request_id": "req_\u2026"
+              }
+            }
+          }
+        }
+      },
+      "ProviderUnavailable": {
+        "description": "A provider this endpoint depends on is not configured on this deployment. A Pepo-side configuration problem, not a problem with the request: nothing is reserved or charged, the balance is untouched, and retrying will not help until the named setting exists. `provider` names the provider and `missing_config` the setting.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/ProviderUnavailableError"
+            },
+            "example": {
+              "error": {
+                "type": "provider_unavailable",
+                "message": "This deployment has no TwelveLabs credential, so the indexed footage cannot be read. Nothing was charged.",
+                "provider": "TwelveLabs",
+                "missing_config": "TWELVELABS_API_KEY",
+                "request_id": "req_\u2026"
               }
             }
           }
@@ -1312,7 +2669,11 @@
                   "not_found",
                   "no_data",
                   "rate_limited",
-                  "internal"
+                  "internal",
+                  "test_read_only",
+                  "budget_too_low",
+                  "test_key_forbidden",
+                  "provider_unavailable"
                 ]
               },
               "message": {
@@ -1475,7 +2836,7 @@
               "null"
             ],
             "description": "Present when the classification was capped below what the score alone would suggest. **Do not describe a gated result as trending.**",
-            "example": "Capped at watchlist: 2 snapshot(s) over 3h — \"trending\" requires at least 3 across 12h."
+            "example": "Capped at watchlist: 2 snapshot(s) over 3h \u2014 \"trending\" requires at least 3 across 12h."
           },
           "components": {
             "type": "object",
@@ -1683,7 +3044,7 @@
               "string",
               "null"
             ],
-            "description": "A plain-language statement when the corpus cannot support the question asked — an empty corpus, no metric history, or too little history to classify anything. Pass it on verbatim.",
+            "description": "A plain-language statement when the corpus cannot support the question asked \u2014 an empty corpus, no metric history, or too little history to classify anything. Pass it on verbatim.",
             "example": "No metric history exists yet for this workspace, so nothing can be scored for momentum."
           },
           "brand_profile_version": {
@@ -1741,7 +3102,7 @@
                     },
                     "new_creators": {
                       "type": "integer",
-                      "description": "Creators posting for the first time in this bucket — the adopters."
+                      "description": "Creators posting for the first time in this bucket \u2014 the adopters."
                     },
                     "cumulative_creators": {
                       "type": "integer"
@@ -1885,7 +3246,7 @@
           },
           "actions": {
             "type": "object",
-            "description": "Next steps, with arguments pre-filled. Actions that are not implemented appear in `unavailable` with a reason — never offered, never silently omitted.",
+            "description": "Next steps, with arguments pre-filled. Actions that are not implemented appear in `unavailable` with a reason \u2014 never offered, never silently omitted.",
             "properties": {
               "available": {
                 "type": "array",
@@ -2023,6 +3384,264 @@
           "usage"
         ]
       },
+      "CorpusAskResponse": {
+        "type": "object",
+        "required": [
+          "answer",
+          "reason",
+          "citations",
+          "hits_considered",
+          "index_videos",
+          "search_method"
+        ],
+        "properties": {
+          "answer": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The answer, one paragraph per cited video, each ending with its `@handle \u2014 url (m:ss\u2013m:ss)` line. Null when `reason` is set."
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "no_index",
+              "no_hits",
+              null
+            ],
+            "description": "`no_index`: nothing indexed for this workspace yet (unbilled). `no_hits`: no indexed video matched within the window."
+          },
+          "citations": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "post_id",
+                "url",
+                "author_handle",
+                "start_s",
+                "end_s",
+                "score"
+              ],
+              "properties": {
+                "post_id": {
+                  "type": "string",
+                  "description": "Usable with `GET /v1/videos/{video_id}`."
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "author_handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "start_s": {
+                  "type": "number",
+                  "description": "Best matching clip, seconds from the start of the video."
+                },
+                "end_s": {
+                  "type": "number"
+                },
+                "score": {
+                  "type": "number",
+                  "description": "Relevance of the best clip."
+                }
+              }
+            }
+          },
+          "hits_considered": {
+            "type": "integer",
+            "description": "Videos actually read for the answer (\u2264 `hits`)."
+          },
+          "index_videos": {
+            "type": "integer",
+            "description": "Videos in this workspace's index \u2014 one per duplicate cluster, so smaller than the corpus."
+          },
+          "indexes_searched": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "How many of this workspace's video indexes were searched. A corpus can span several \u2014 large corpora are split across several indexes, and each collection run may write its own \u2014 and every one of them is searched."
+          },
+          "indexes_unavailable": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Indexes that could not be searched (deleted, or the provider errored). Non-null only when that happened. Their videos are missing from this answer, so read it as thinner than the corpus by that much rather than as a complete result."
+          },
+          "degraded": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Provider-thinned coverage among the cited hits. Present only when at least one hit fell back or went unanswered specifically because Pegasus returned HTTP 429, the shared analyze-lease wait expired, or a held lease was lost during renewal.",
+            "required": [
+              "reasons",
+              "hits"
+            ],
+            "properties": {
+              "reasons": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "provider_429",
+                    "lease_capacity_timeout",
+                    "lease_lost"
+                  ]
+                }
+              },
+              "hits": {
+                "type": "integer"
+              }
+            }
+          },
+          "asked": {
+            "type": "object",
+            "description": "The request echoed back, so a null answer is actionable. `window` is the caller's own filter: `no_hits` with a window set means \"nothing in that period\", not \"nothing in this corpus\", and widening it is usually the fix.",
+            "properties": {
+              "question": {
+                "type": "string"
+              },
+              "window": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "post_id": {
+                  "type": "string"
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "read_footage",
+                    "stored_analysis",
+                    "unanswered"
+                  ]
+                },
+                "degraded_reason": {
+                  "type": "string",
+                  "enum": [
+                    "provider_429",
+                    "lease_capacity_timeout",
+                    "lease_lost"
+                  ]
+                }
+              }
+            },
+            "description": "How each cited video was answered: read live from the footage, from the stored per-video analysis, or not at all. `degraded_reason` is present only when that hit was thinned specifically by provider 429, shared analyze-capacity timeout, or a lost shared analyze lease."
+          },
+          "search_method": {
+            "type": "string",
+            "description": "**Read this.** States that only indexed footage was searched, never captions or the whole corpus."
+          },
+          "caveat": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "CoverageGapGroup": {
+        "type": "object",
+        "required": [
+          "count",
+          "first_asked_at",
+          "last_asked_at",
+          "questions"
+        ],
+        "properties": {
+          "count": {
+            "type": "integer"
+          },
+          "first_asked_at": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Unix ms of the oldest question in this group within the window, or null when the group is empty."
+          },
+          "last_asked_at": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Unix ms of the newest question in this group within the window, or null when the group is empty."
+          },
+          "questions": {
+            "type": "array",
+            "description": "Newest first, capped at 50 \u2014 enough to act on, not the whole window.",
+            "items": {
+              "type": "object",
+              "required": [
+                "question",
+                "source",
+                "result_count",
+                "reason",
+                "asked_at"
+              ],
+              "properties": {
+                "question": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string",
+                  "enum": [
+                    "ask_corpus",
+                    "search_videos"
+                  ]
+                },
+                "result_count": {
+                  "type": "integer",
+                  "description": "`hits_considered` (ask_corpus) or `matched` (search_videos) at the time this question was logged."
+                },
+                "reason": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "no_index",
+                    "no_hits",
+                    "empty_corpus",
+                    "no_caption_match",
+                    null
+                  ]
+                },
+                "asked_at": {
+                  "type": "number",
+                  "description": "Unix ms."
+                }
+              }
+            }
+          }
+        }
+      },
       "VideoDetail": {
         "type": "object",
         "properties": {
@@ -2047,9 +3666,93 @@
           "metrics": {
             "$ref": "#/components/schemas/Metrics"
           },
+          "media": {
+            "type": "object",
+            "description": "The playable file, when one was captured. `video_url_kind` says which of two different things `video_url` is: `stored` is a durable copy Pepo holds and can be played whenever, `cdn_signed` is the **signed platform url captured at ingest, which expires within hours** \u2014 treat that one as best-effort and fall back to `video.thumb_url` and `video.url`. Null on rows with neither, and on platforms that serve no direct file.",
+            "properties": {
+              "video_url": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "video_url_kind": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "stored",
+                  "cdn_signed",
+                  null
+                ]
+              },
+              "mime": {
+                "type": "string",
+                "description": "Content type of the stored copy. Present only when `video_url_kind` is `stored`."
+              },
+              "bytes": {
+                "type": "number",
+                "description": "Size of the stored copy in bytes. Present only when `video_url_kind` is `stored`."
+              }
+            }
+          },
+          "analysis": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the stored per-video read says the video says. Null when no analysis is stored \u2014 which is not the same as an analysis that found nothing, and is reported as its own state rather than as empty fields.",
+            "properties": {
+              "summary": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hook": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "The opening line or opening image, verbatim."
+              },
+              "claims": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "claim | complaint | request | question, as classified by the analysis pass. Null when the stored record carries none."
+                    },
+                    "about": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The entity the claim concerns, or null when general."
+                    }
+                  }
+                }
+              },
+              "themes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
           "history": {
             "type": "object",
-            "description": "The observation series behind any momentum claim about this video — the evidence, not the conclusion.",
+            "description": "The observation series behind any momentum claim about this video \u2014 the evidence, not the conclusion.",
             "properties": {
               "snapshots": {
                 "type": "array",
@@ -2114,7 +3817,7 @@
                       },
                       "unknown": {
                         "type": "integer",
-                        "description": "Comments carrying no classification. Never folded into `neutral` — guessing would inflate the coverage number, which is the one figure meant to be trustworthy."
+                        "description": "Comments carrying no classification. Never folded into `neutral` \u2014 guessing would inflate the coverage number, which is the one figure meant to be trustworthy."
                       }
                     }
                   },
@@ -2149,7 +3852,15 @@
                       "type": [
                         "string",
                         "null"
-                      ]
+                      ],
+                      "description": "Handle, or the display name when no handle was captured."
+                    },
+                    "author_handle": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The handle alone. Null rather than the display name, so a client rendering `@` + this value never prints `@Jane Doe`."
                     },
                     "text": {
                       "type": "string"
@@ -2241,6 +3952,27 @@
               "category": {
                 "type": "string"
               },
+              "judge_category": {
+                "type": "object",
+                "description": "What counts as on-topic vs. noise when the corpus judge reads collected posts for this brand. Different from `category` (the industry label): this refines the judge's category definition. The judge never sees the brand name itself, so phrase `means`/`other` about the content, not the brand.",
+                "required": [
+                  "means",
+                  "other"
+                ],
+                "properties": {
+                  "label": {
+                    "type": "string"
+                  },
+                  "means": {
+                    "type": "string",
+                    "description": "What on-topic content is for this brand, when judging collected posts."
+                  },
+                  "other": {
+                    "type": "string",
+                    "description": "What should be treated as noise, when judging collected posts."
+                  }
+                }
+              },
               "customer_problems": {
                 "type": "array",
                 "items": {
@@ -2282,7 +4014,7 @@
                 "items": {
                   "type": "string"
                 },
-                "description": "Topics this brand refuses to be associated with. Enforced server-side in every workflow — matching results are withheld and counted in `corpus.excluded_by_brand_profile`."
+                "description": "Topics this brand refuses to be associated with. Enforced server-side in every workflow \u2014 matching results are withheld and counted in `corpus.excluded_by_brand_profile`."
               }
             }
           }
@@ -2441,6 +4173,47 @@
           }
         }
       },
+      "ProviderUnavailableError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message",
+              "provider",
+              "missing_config"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "provider_unavailable"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "provider": {
+                "type": "string",
+                "description": "The third-party provider this endpoint needs and cannot reach.",
+                "example": "TwelveLabs"
+              },
+              "missing_config": {
+                "type": "string",
+                "description": "The deployment setting whose absence caused this, named so the person who can fix it does not have to guess which provider key is missing.",
+                "example": "TWELVELABS_API_KEY"
+              }
+            }
+          }
+        }
+      },
       "SovEntity": {
         "type": "object",
         "required": [
@@ -2494,7 +4267,7 @@
           },
           "reliable": {
             "type": "boolean",
-            "description": "**Check this before quoting any percentage.** False means the corpus cannot support a share of voice at all — most often because it was collected by searching for this brand, which makes the brand's dominance an artefact of the search rather than a fact about the market. Report `caveats` instead of the split."
+            "description": "**Check this before quoting any percentage.** False means the corpus cannot support a share of voice at all \u2014 most often because it was collected by searching for this brand, which makes the brand's dominance an artefact of the search rather than a fact about the market. Report `caveats` instead of the split."
           },
           "caveats": {
             "type": "array",
@@ -2519,7 +4292,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Configuration problems (no brand names, no competitors) that prevent a share of voice. Distinct from a data problem — the fix is different."
+            "description": "Configuration problems (no brand names, no competitors) that prevent a share of voice. Distinct from a data problem \u2014 the fix is different."
           },
           "entities": {
             "type": "array",
@@ -2658,7 +4431,7 @@
           },
           "isRemainder": {
             "type": "boolean",
-            "description": "The synthetic row absorbing everything below the top-N cut. It is real and must not be dropped when summarising — it is what keeps a truncated breakdown summing to the whole."
+            "description": "The synthetic row absorbing everything below the top-N cut. It is real and must not be dropped when summarising \u2014 it is what keeps a truncated breakdown summing to the whole."
           }
         }
       },
@@ -2736,7 +4509,7 @@
               "integer",
               "null"
             ],
-            "description": "When `comparable` is false, the largest window this corpus could actually support — retry with it. Null means the corpus is too short to split into two periods at all, so the fix is more collection rather than a different window."
+            "description": "When `comparable` is false, the largest window this corpus could actually support \u2014 retry with it. Null means the corpus is too short to split into two periods at all, so the fix is more collection rather than a different window."
           },
           "periods": {
             "type": [
@@ -2944,7 +4717,7 @@
           },
           "voices": {
             "type": "integer",
-            "description": "Distinct people. Five comments from one account is one voice, not five — report this alongside any count."
+            "description": "Distinct people. Five comments from one account is one voice, not five \u2014 report this alongside any count."
           },
           "share": {
             "type": "number"
@@ -3039,7 +4812,7 @@
           },
           "unknown_sku": {
             "type": "boolean",
-            "description": "True when the requested `sku` is not one of the brand's configured products. This is an INPUT error, not an empty result — report it as a bad argument and retry with one of `known_products`, never as \"no one is talking about this product\"."
+            "description": "True when the requested `sku` is not one of the brand's configured products. This is an INPUT error, not an empty result \u2014 report it as a bad argument and retry with one of `known_products`, never as \"no one is talking about this product\"."
           },
           "setup_gaps": {
             "type": "array",
@@ -3092,7 +4865,7 @@
                 }
               }
             },
-            "description": "Themes present but below the evidence floor of 3 distinct sources. Returned so they are visible and countable — but they must NOT be reported as findings, ranked, or charted. Two mentions is not a pattern, and a bar chart makes it look like one."
+            "description": "Themes present but below the evidence floor of 3 distinct sources. Returned so they are visible and countable \u2014 but they must NOT be reported as findings, ranked, or charted. Two mentions is not a pattern, and a bar chart makes it look like one."
           },
           "by_sku": {
             "type": "array",
@@ -3214,7 +4987,7 @@
           },
           "postsInCorpus": {
             "type": "integer",
-            "description": "Posts WE COLLECTED, never the creator's output. A low count can mean they post rarely or that we searched narrowly — the two are indistinguishable from here."
+            "description": "Posts WE COLLECTED, never the creator's output. A low count can mean they post rarely or that we searched narrowly \u2014 the two are indistinguishable from here."
           },
           "medianViews": {
             "type": "integer",
@@ -3234,7 +5007,7 @@
               "moderate",
               "measured"
             ],
-            "description": "How much this row is worth standing on. \"provisional\" means fewer than 4 posts — a median of two posts is just their average, and one breakout in the pair puts a creator at the top of the list on the thinnest evidence in it. Never present a provisional row as a top creator without saying so."
+            "description": "How much this row is worth standing on. \"provisional\" means fewer than 4 posts \u2014 a median of two posts is just their average, and one breakout in the pair puts a creator at the top of the list on the thinnest evidence in it. Never present a provisional row as a top creator without saying so."
           },
           "consistency": {
             "type": [
@@ -3254,7 +5027,7 @@
             "items": {
               "type": "string"
             },
-            "description": "Exclusion terms this creator's captions matched. A hit worth reviewing — the absence of one is never a clearance."
+            "description": "Exclusion terms this creator's captions matched. A hit worth reviewing \u2014 the absence of one is never a clearance."
           },
           "skus": {
             "type": "array",
@@ -3367,14 +5140,14 @@
                 }
               }
             },
-            "description": "Creators with exactly one post in the corpus. Present and countable but NOT ranked, and they must not be compared with the ranked list — one post has no median and no consistency."
+            "description": "Creators with exactly one post in the corpus. Present and countable but NOT ranked, and they must not be compared with the ranked list \u2014 one post has no median and no consistency."
           },
           "flagged_creators": {
             "type": "integer"
           },
           "safety_statement": {
             "type": "string",
-            "description": "Repeat this whenever you mention brand safety. A flag is a hit; zero flags is NOT a clearance — screening is keyword-based over captions only and cannot see video content or posts outside this corpus."
+            "description": "Repeat this whenever you mention brand safety. A flag is a hit; zero flags is NOT a clearance \u2014 screening is keyword-based over captions only and cannot see video content or posts outside this corpus."
           },
           "notes": {
             "type": "array",
@@ -3597,7 +5370,7 @@
                     "type": "number"
                   }
                 },
-                "description": "Everything the brand did not post — paid and earned TOGETHER. These cannot be separated: nothing in the corpus records whether a post was promoted, boosted, gifted or contracted."
+                "description": "Everything the brand did not post \u2014 paid and earned TOGETHER. These cannot be separated: nothing in the corpus records whether a post was promoted, boosted, gifted or contracted."
               },
               "ownedUnknown": {
                 "type": "boolean",
@@ -3687,6 +5460,480 @@
           },
           "usage": {
             "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "Collection": {
+        "type": "object",
+        "description": "A collection run, as returned by every /v1/collections endpoint. `reason` is set when the run stopped for something other than reaching `target` \u2014 a cancel, a settle, or an error.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "description": "e.g. \"running\", \"done\", \"cancelled\", \"error\"."
+          },
+          "done": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "window_hours": {
+            "type": "number"
+          },
+          "target": {
+            "type": "integer",
+            "description": "Videos requested, 1\u20135000."
+          },
+          "collected": {
+            "type": "integer",
+            "description": "Videos actually landed so far."
+          },
+          "pages": {
+            "type": "integer",
+            "description": "Provider pages fetched so far."
+          },
+          "coverage": {
+            "type": "object",
+            "description": "Coverage of the collected set against the request. Shape varies by run."
+          },
+          "budget_usd": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Spend so far. Not final until `settled` is true."
+          },
+          "settled": {
+            "type": "boolean",
+            "description": "Whether billing has settled for what actually landed. False while the run is still going."
+          },
+          "treatment": {
+            "type": "string",
+            "enum": [
+              "full",
+              "collect_only"
+            ],
+            "description": "`full`: a corpus run follows collection. `collect_only`: rows only."
+          },
+          "corpus_run": {
+            "oneOf": [
+              {
+                "$ref": "#/components/schemas/CorpusRun"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The corpus run behind a full-treatment collection, once enqueued. Null before that and for collect_only."
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix ms."
+          },
+          "finished_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix ms, or null while still running."
+          },
+          "monitor_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set when a scheduled collection (a `collection_topup` monitor) started this run."
+          }
+        }
+      },
+      "BudgetTooLowError": {
+        "type": "object",
+        "required": [
+          "error"
+        ],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "type",
+              "message",
+              "estimated_cost_usd",
+              "budget_usd",
+              "field"
+            ],
+            "properties": {
+              "type": {
+                "type": "string",
+                "enum": [
+                  "budget_too_low"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "request_id": {
+                "type": "string"
+              },
+              "estimated_cost_usd": {
+                "type": "number",
+                "description": "What this run is estimated to cost. Nothing was started or charged."
+              },
+              "budget_usd": {
+                "type": "number",
+                "description": "The `budget_usd` you sent."
+              },
+              "field": {
+                "type": "string",
+                "enum": [
+                  "budget_usd"
+                ]
+              }
+            }
+          }
+        }
+      },
+      "CorpusRunStage": {
+        "type": "object",
+        "description": "One stage of a corpus run, in pipeline order. `output` is the quantity billed at the stage's unit (judge \u2192 dataset_row_verified, enrich \u2192 content_enriched, analyze \u2192 video_analyzed, index \u2192 video_indexed, comments \u2192 comment_collected, sentiment \u2192 comment_judged; dedup is free).",
+        "properties": {
+          "name": {
+            "type": "string",
+            "enum": [
+              "judge",
+              "enrich",
+              "dedup",
+              "analyze",
+              "index",
+              "comments",
+              "sentiment",
+              "comment_refresh"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "running",
+              "done",
+              "skipped",
+              "failed"
+            ]
+          },
+          "input": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Rows considered."
+          },
+          "output": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Rows produced \u2014 the billed quantity."
+          },
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Human line, e.g. \"34 kept, 6 excluded as off-subject\". Quality-gate warnings start with \"warning\"."
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "started_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix ms."
+          },
+          "finished_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix ms."
+          }
+        }
+      },
+      "CorpusRun": {
+        "type": "object",
+        "description": "The staged pipeline a full-treatment collection hands its rows to. Settles once, at the end, with one billed line per stage that produced output; `charge_capped` means the stages metered more than the hold the collection left and the charge stopped at the hold. `warnings` are the quality gates that fired (too few rows kept by judge, too many collapsed by dedup) \u2014 the run continues; the operator decides whether to cancel.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "collection_id": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "succeeded",
+              "failed",
+              "cancelled"
+            ]
+          },
+          "attempt": {
+            "type": "integer",
+            "description": "How many times a worker has claimed the run. A run whose worker goes quiet is re-queued; the third stale claim fails it."
+          },
+          "current_stage": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "stages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CorpusRunStage"
+            }
+          },
+          "cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Stage spend. Final once `settled` is true."
+          },
+          "settled": {
+            "type": "boolean"
+          },
+          "charge_capped": {
+            "type": "boolean"
+          },
+          "eta_minutes": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Remaining stages \u00d7 the measured per-stage time of this run; null until a stage has finished, and once the run is over."
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix ms."
+          },
+          "started_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "finished_at": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "Monitor": {
+        "type": "object",
+        "description": "A saved workflow on a schedule with a hard monthly budget \u2014 the only thing in this API that spends money with no human present. Spend is tracked per rolling 30-day period; a run whose expected cost does not fit what remains is recorded as `skipped_budget`, and with `pause_at_cap` the monitor flips to `capped` until the period rolls or the cap is raised.",
+        "required": [
+          "id",
+          "workflow",
+          "params",
+          "schedule",
+          "budget",
+          "status"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "workflow": {
+            "type": "string",
+            "enum": [
+              "trending",
+              "collection_topup"
+            ],
+            "description": "`trending` re-reads the stored corpus each run. `collection_topup` starts one `/v1/collections` run per subject in `params.subjects` each tick \u2014 the standing order that keeps a corpus current, and grows to more search terms over time via `POST /v1/monitors/{id}/update`."
+          },
+          "params": {
+            "type": "object",
+            "description": "For `collection_topup`: `{subjects, platforms, window, target, treatment}`, normalised \u2014 `subjects` is always an array here (1 or more entries), even when the schedule was created with a single `subject`. For `trending`: the `/v1/trending` body.",
+            "additionalProperties": true
+          },
+          "schedule": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "interval",
+                  "daily",
+                  "weekly"
+                ]
+              },
+              "everyHours": {
+                "type": "integer"
+              },
+              "timeLocal": {
+                "type": "string",
+                "description": "HH:MM, interpreted as UTC."
+              }
+            }
+          },
+          "budget": {
+            "type": "object",
+            "required": [
+              "monthly_cap_usd",
+              "pause_at_cap",
+              "spent_this_period_usd",
+              "period_started_at"
+            ],
+            "properties": {
+              "monthly_cap_usd": {
+                "type": "number",
+                "description": "The hard ceiling per rolling 30-day period."
+              },
+              "pause_at_cap": {
+                "type": "boolean"
+              },
+              "spent_this_period_usd": {
+                "type": "number",
+                "description": "For `collection_topup` this includes the reservation of any run still in flight; it is corrected to the actual charge when the collection settles."
+              },
+              "period_started_at": {
+                "type": "number"
+              }
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "active",
+              "paused",
+              "capped"
+            ]
+          },
+          "next_run_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "last_run_at": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "last_cost_usd": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "last_collection_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`collection_topup` only: the collection the latest run started. Poll it on `GET /v1/collections/{collection_id}`."
+          }
+        }
+      },
+      "MonitorRun": {
+        "type": "object",
+        "description": "One execution of a monitor. Skipped runs are recorded too \u2014 a monitor that silently stops is indistinguishable from a broken one.",
+        "required": [
+          "ran_at",
+          "status",
+          "cost_usd",
+          "request_id"
+        ],
+        "properties": {
+          "ran_at": {
+            "type": "number"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "skipped_budget",
+              "insufficient_credits",
+              "error"
+            ]
+          },
+          "cost_usd": {
+            "type": "number",
+            "description": "For `collection_topup`: the reservation while the collection is in flight (`summary.accounting: \"reserved\"`), the actual charge once it settled (`\"settled\"`)."
+          },
+          "request_id": {
+            "type": "string"
+          },
+          "collection_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`collection_topup` only: the collection this run started."
+          },
+          "summary": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "additionalProperties": true
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         }
       }
