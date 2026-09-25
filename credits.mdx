@@ -11,10 +11,10 @@ Two guardrails, not one, because a balance alone does not stop a single call fro
 
 <CardGroup cols={2}>
   <Card title="Balance" icon="wallet">
-    A call whose estimate exceeds your remaining balance is refused **before any work starts**, and nothing is charged.
+    A call whose estimate exceeds your available balance is refused **before any work starts**, and nothing is charged.
   </Card>
   <Card title="Per-call ceiling" icon="gauge">
-    Every metered endpoint takes `max_cost_usd`, with a server default when you omit it. Work stops at the ceiling and returns partial results rather than overrunning.
+    Every metered endpoint takes `max_cost_usd`, with a server default when you omit it. The ceiling limits the **charge**, never the work: the call runs to completion and you are never billed above it.
   </Card>
 </CardGroup>
 
@@ -36,11 +36,17 @@ X-Pepo-Request-Id: req_a16f58106b2a4b90a9a1c64e90858e3c
     { "unit": "search_request",   "quantity": 1,   "unit_cost_usd": 0.01,  "cost_usd": 0.01 },
     { "unit": "content_enriched", "quantity": 412, "unit_cost_usd": 0.002, "cost_usd": 0.824 }
   ],
+  "charge_capped": false,
+  "metered_usd": 0.834,
   "truncated": false
 }
 ```
 
-`truncated: true` means the call hit its ceiling. The results are partial and that is not an error — reduce scope or raise `max_cost_usd`.
+`charge_capped: true` means the work metered more than was held for the call, so the charge stopped at the hold. `metered_usd` is what the `billed` lines add up to before that cap. **Your results are complete either way**: every call runs to completion before it is billed, and a capped call returns exactly what an uncapped one would.
+
+<Note>
+`truncated` is a deprecated alias of `charge_capped` and always carries the same value. It never meant partial results. Read `charge_capped`.
+</Note>
 
 ## Billing units
 
@@ -48,14 +54,38 @@ Billed on the unit the underlying cost actually tracks, so what you pay does not
 
 | Unit | Price | What it counts |
 |---|---|---|
-| `search_request` | $0.010 | One query against your corpus |
-| `content_enriched` | $0.002 | One post read and analysed |
+| `search_request` | $0.010 | One search: the fixed part of every call that reads the library, and a collection preview |
+| `content_enriched` | $0.002 | One stored post or source a call reads; one row enriched when videos are added |
+| `corpus_question` | $0.050 | One question asked of the library |
+| `video_read` | $0.030 | One video's footage read live to answer a question |
+| `post_collected` | $0.020 | One post added to the library |
+| `dataset_row_verified` | $0.060 | One added post checked for being about the subject |
+| `video_analyzed` | $0.125 | One video analyzed: transcript, what is on screen, summary |
+| `video_indexed` | $0.100 | One video made searchable for questions |
+| `comment_collected` | $0.002 | One comment collected |
+| `comment_judged` | $0.003 | One comment read for tone |
+| `monitor_snapshot` | $0.005 | One scheduled metric observation |
+| `raw_row_exported` | $0.010 | Reserved for metered export. Paging and exporting the library is free today |
 
-### What actually drives the price
+`video_analyzed` and `video_indexed` are per video up to 3 minutes long. Past that, a video bills one more unit per started 72 seconds, so a long video costs more than a short clip rather than being sold below cost.
+
+### What each kind of call costs
+
+| Call | Billed |
+|---|---|
+| Reading and exporting the library, one video, comments, credits, estimates, library gaps | Free |
+| Search, trending, share of voice, competitor, product, creator and campaign reads | One `search_request`, plus one `content_enriched` per stored post read |
+| Asking the library a question | One `corpus_question`, plus one `video_read` per video whose footage was read live |
+| Previewing a subject before adding videos | One `search_request` |
+| Adding videos (full treatment, the default) | About $0.39 per video kept: $0.02 to add it, the rest for checking, analyzing, indexing and reading about 20 comments. Billed only for the work that actually ran |
+| Adding videos (`collect_only`) | $0.02 per video kept |
+| Analyzing videos already in the library | Per video: `video_analyzed` if it has no analysis yet, `video_indexed`, and one `content_enriched` |
+
+**Asking is cheap when the library is analyzed.** A question is answered from each video's stored transcript and on-screen record first. Those answers, answers served from an earlier identical question, and answers from the stored analysis are not reads and are not billed as one. The footage is read live, at $0.03 a video, only when that text cannot answer. A question the library cannot answer yet (videos still waiting for analysis, nothing indexed, or a question no video could answer) costs nothing.
+
+### What actually drives the price of a read
 
 **How many posts a call reads**, not how many results it returns. A trending call over 412 posts costs the same whether you ask for 10 results or 100.
-
-That makes the levers straightforward:
 
 | To spend less | Effect |
 |---|---|
@@ -63,7 +93,7 @@ That makes the levers straightforward:
 | Restrict `platforms` | Reads only that platform's posts |
 | Change `limit` | **No effect on cost** |
 
-Because Pepo can count the posts a call will read before running it, the estimate is exact rather than a guess — `estimate` and `usage.cost_usd` agree.
+Because Pepo can count the posts a call will read before running it, the estimate for a read is exact rather than a guess: `estimate` and `usage.cost_usd` agree.
 
 ## Estimate first
 
@@ -72,15 +102,15 @@ Because Pepo can count the posts a call will read before running it, the estimat
 ```json
 {
   "estimate": {
-    "cost_usd": { "low": 0.83, "expected": 0.83, "high": 0.83 },
-    "assumes": { "posts_considered": 412, "videos_returned": 25 },
+    "cost_usd": { "low": 0.834, "expected": 0.834, "high": 0.834 },
+    "assumes": { "posts_considered": 412, "videos_returned": 25, "platforms": 1 },
     "balance_usd": 20.0,
     "affordable": true
   }
 }
 ```
 
-Low, expected and high are identical here because the corpus was counted. They widen only when a call's scope can't be counted in advance.
+Low, expected and high are identical here because the library was counted. They widen when a call's scope cannot be counted in advance: for a question, `low` is the question alone and `high` assumes every video is read live; for adding videos, `low` allows for a subject that runs out before the target.
 
 <Tip>
 If you are driving Pepo from an agent, make `estimate` available to it. An agent that can price its own plan proposes the affordable version first, instead of discovering the ceiling by hitting it.
@@ -94,19 +124,20 @@ A refused call returns `402` and carries a way forward:
 {
   "error": {
     "type": "insufficient_credits",
-    "message": "This request is estimated at $5.00 and the workspace balance is $4.93.",
+    "message": "This request is estimated at $5.00. The workspace balance is $4.93, with $4.12 currently available to spend.",
     "estimated_cost_usd": 5.0,
     "balance_usd": 4.934,
+    "available_balance_usd": 4.12,
     "suggestions": [
-      "Narrow `window` — this workspace holds 5000 matching posts and the balance covers about 2465 (roughly the most recent 49%).",
-      "Restrict `platforms` to one platform — cost tracks how many posts are read, so a narrower platform set reads fewer.",
-      "Add credits at https://app.joinpepo.com/settings/billing"
+      "Narrow `window`: this workspace holds 5000 matching posts and the balance covers about 2055 (roughly the most recent 41%).",
+      "Restrict `platforms` to one platform: cost tracks how many posts are read, so a narrower platform set reads fewer.",
+      "Add credits at https://joinpepo.com/launch?to=billing"
     ]
   }
 }
 ```
 
-`suggestions` is computed against your actual balance and names the levers that actually move the price for this call. An error that says only "no" ends an agent's task; one that carries an affordable plan lets it continue.
+`available_balance_usd` is your balance minus what other calls in flight are holding. `suggestions` is computed against it and names the levers that actually move the price for this call. An error that says only "no" ends an agent's task; one that carries an affordable plan lets it continue.
 
 Nothing is charged on a `402`. No work was started.
 
@@ -117,7 +148,7 @@ Nothing is charged on a `402`. No work was started.
 
 Reserve, work, settle: the estimate is held against your balance before work begins and the unspent part is refunded when the call completes. Two consequences worth knowing:
 
-- Two large concurrent calls cannot both pass a balance check and jointly overdraw — the second is refused.
+- Two large concurrent calls cannot both pass a balance check and jointly overdraw: the second is refused.
 - Your balance may dip during a long call and recover when it settles. `GET /v1/credits` mid-flight can read lower than the eventual charge.
 
-You are never billed above the ceiling you were quoted. Actual cost is clamped to the reservation, and any shortfall is reported as `truncated`.
+You are never billed above the amount held. The actual charge is clamped to it, and when that happens `usage.charge_capped` says so.

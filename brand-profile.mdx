@@ -3,7 +3,7 @@ title: "Brand profile"
 description: "The one setup step that decides whether results are about your brand or about your category."
 ---
 
-Every workflow reads your brand profile before it does anything. It is what turns "find trending nail videos" into "find trending nail videos that matter to *this* brand, its products, and its competitors — and never surface the topics it has asked us to avoid."
+Every workflow reads your brand profile before it does anything. It is what turns "find trending nail videos" into "find trending nail videos that matter to *this* brand, its products, and its competitors, and never surface the topics it has asked us to avoid."
 
 Without one, the API refuses the call:
 
@@ -13,14 +13,14 @@ Without one, the API refuses the call:
     "type": "profile_required",
     "message": "This workspace has no approved brand profile. Every workflow reads it, so results would be generic category noise rather than answers about your brand.",
     "next": {
-      "endpoint": "POST /v1/brand-profile/propose",
-      "required_fields": ["brand_name", "website"]
+      "endpoint": "POST /v1/brand-profile",
+      "required_fields": ["brand_names"]
     }
   }
 }
 ```
 
-That is deliberate. Returning plausible generic results would be worse than refusing — you would have no way to tell them apart from real ones.
+That is deliberate. Returning plausible generic results would be worse than refusing: you would have no way to tell them apart from real ones.
 
 ## What it holds
 
@@ -31,38 +31,40 @@ That is deliberate. Returning plausible generic results would be worse than refu
 | `competitors` | Turns "who is winning" into a question with a defined answer set. |
 | `category` | Defines the comparison group a trend is measured against. |
 | `customer_problems` | What people are trying to solve when they find you. Usually better search vocabulary than your own marketing language. |
-| `audiences`, `markets` | Geography and segment filters. |
-| `creators`, `campaigns`, `hashtags` | Known relationships, so earned coverage can be told apart from paid. |
+| `audiences`, `markets` | Who you sell to and where. They describe your business, not where a viewer was: posts carry no geography. |
+| `creators`, `campaigns`, `hashtags` | Known relationships and tags. `hashtags` also helps the subject check tell on-topic video from noise. |
+| `official_accounts` | Your own handles and your competitors'. Posts from them are withheld from every answer: a brand's own posts are never signal. |
 | `exclusions` | Topics you refuse to be associated with. |
 
 ### Exclusions do more work than they look like
 
-`exclusions` is the field most often left empty and the one whose absence is most visible later. It is enforced server-side in every workflow — matching results are withheld before they reach you, and counted in `corpus.excluded_by_brand_profile` so the filtering is never silent.
+`exclusions` is the field most often left empty and the one whose absence is most visible later. It is enforced server-side in every workflow: matching results are withheld before they reach you, and counted in `corpus.excluded_by_brand_profile` so the filtering is never silent.
 
 It is the difference between a trend brief a VP can forward and one that surfaces a competitor's product recall as a content opportunity.
 
-Worth asking directly when you set this up: *is there anything we never want appearing in a brief — a lawsuit, a recall, a discontinued line, a competitor we would rather not amplify?*
+Worth asking directly when you set this up: *is there anything we never want appearing in a brief: a lawsuit, a recall, a discontinued line, a competitor we would rather not amplify?*
 
 ## How it gets created
 
-An agent researches your brand and website and **proposes** a profile; a person approves or corrects it. The approval is recorded against the version.
+You, or an agent working with you, draft it: the `set_brand_profile` tool and the `/pepo-setup-brand` prompt are told to show you the draft and get your confirmation before saving. It is saved with `POST /v1/brand-profile` and is active immediately.
 
-The review step is not ceremony. A profile an agent wrote and nobody checked makes every downstream answer wrong in the same direction, quietly, for months — and profile mistakes are the hardest kind to notice, because the results still look like results.
+The review step is not ceremony. A profile an agent wrote and nobody checked makes every downstream answer wrong in the same direction, quietly, for months, and profile mistakes are the hardest kind to notice, because the results still look like results.
 
 ## Versioning
 
 Every approved profile has a version, and **every result records which version produced it** (`brand_profile_version`).
 
-Two runs against different versions are not strictly comparable. If a competitor was added on Tuesday, Monday's share-of-voice number and Wednesday's are answering slightly different questions — and the version stamp is what lets you notice that six weeks later, when the two numbers disagree in a meeting.
+Two runs against different versions are not strictly comparable. If a competitor was added on Tuesday, Monday's share-of-voice number and Wednesday's are answering slightly different questions, and the version stamp is what lets you notice that six weeks later, when the two numbers disagree in a meeting.
 
 Editing creates a new version rather than mutating the old one. Previous versions are retained.
 
 ## Endpoints
 
 ```bash
-GET /v1/brand-profile    # the approved profile, or needs_setup
+GET  /v1/brand-profile    # the approved profile, or needs_setup
+POST /v1/brand-profile    # save a new version, active immediately (live keys only)
 ```
 
 <Note>
-`POST /v1/brand-profile/propose` and `/approve` exist as internal functions and are not yet exposed over HTTP. During the pilot, profile setup happens in the dashboard or through the `pepo-setup-brand` MCP prompt. This page describes the shape you will get when they ship; the `GET` is live today.
+There is no propose-and-approve route: Pepo itself does not research your website. The draft comes from you, or from the assistant you are working with, and is saved directly.
 </Note>

@@ -1,17 +1,17 @@
 ---
 title: "The console"
-description: "What your key did, what it cost, and what broke — in the dashboard."
+description: "What your key did, what it cost, and what broke, in the dashboard."
 ---
 
 Everything the API reports in a response is also visible in the dashboard, after the fact and across every call. Four pages: **Logs**, **Usage**, **API keys**, and **Billing**.
 
-The console is read-only about your traffic. It cannot replay, retry, or edit a request — it records what happened.
+The console is read-only about your traffic. It cannot replay, retry, or edit a request: it records what happened.
 
 ## Logs
 
 One row per request, newest first: time, endpoint, status, duration, cost, and the request id.
 
-**Failures are the point.** The `usage` block in a response tells you what a successful call cost; it cannot tell you why yesterday's job stopped working. Logs keeps every request, including the ones that produced no charge — the `402` at an empty balance, the `400` with a misspelled field, the `404` for a video that is not in your corpus.
+**Failures are the point.** The `usage` block in a response tells you what a successful call cost; it cannot tell you why yesterday's job stopped working. Logs keeps every request, including the ones that produced no charge: the `402` at an empty balance, the `400` with a misspelled field, the `404` for a video that is not in your corpus.
 
 Filter by status class (`2xx`, `4xx`, `5xx`) rather than by exact code, because the question is usually "what is failing" and not "show me 402s".
 
@@ -29,10 +29,10 @@ Click a request id to expand what it was billed for. A `$0.3600` charge on `/v1/
 | `content_enriched` | 175 | $0.0020 | $0.3500 |
 | | | **Total charged** | **$0.3600** |
 
-The lines are checked against the total. If they ever fail to add up, the console says the breakdown is incomplete rather than presenting a partial list as an explanation — a cost you cannot decompose is a cost you have to take on trust.
+The lines are checked against the total. If they ever fail to add up, the console says the breakdown is incomplete rather than presenting a partial list as an explanation: a cost you cannot decompose is a cost you have to take on trust.
 
 <Note>
-Requests are kept for **30 days**. Your credit history is kept indefinitely — losing a log row costs a debugging session, losing a ledger row costs an audit.
+Requests are kept for **30 days**. Your credit history is kept indefinitely: losing a log row costs a debugging session, losing a ledger row costs an audit.
 </Note>
 
 ## Usage
@@ -53,9 +53,9 @@ Spend comes from your billing records, which are permanent. Request counts come 
 
 ## API keys
 
-Create, inspect and revoke keys. Owners and admins only — a key is a standing grant of the workspace's whole data surface plus its credit balance.
+Create, inspect and revoke keys. Owners and admins only: a key is a standing grant of the workspace's whole data surface plus its credit balance.
 
-The **Mode** column is the one to read. Key plaintext begins `pk_live_` or `pk_test_`, and **the prefix does not tell you the mode**: a `demo` key is issued with a `pk_test_` prefix. See [Authentication](/authentication) for what each mode does.
+The **Mode** column says what a key can do: `live` or `test`, matching the plaintext prefix `pk_live_` or `pk_test_`. See [Authentication](/authentication) for what each mode does.
 
 **Last used** answers the question that matters most often: which key is the one you provisioned and never deployed. It reads `Never` until a key's first request.
 
@@ -80,12 +80,12 @@ settle  /v1/share-of-voice (reserved 362000,
 That is the prepaid model working: you are never charged the estimate, only the actual cost, and the difference comes back in the same transaction.
 
 <Note>
-Top-ups are **not self-serve during the pilot**. Email [contact@joinpepo.com](mailto:contact@joinpepo.com) and the credit will appear in this history with its reference against it.
+Top up from **Billing** with a card, for any amount. Each top-up appears in this history with its reference against it. Questions go to [contact@joinpepo.com](mailto:contact@joinpepo.com).
 </Note>
 
 ## Settings
 
-The brand profile every API workflow reads — products, competitors, category, and exclusion terms. This is the same object `GET /v1/brand-profile` returns; see [Brand profile](/brand-profile) for what each field changes.
+The brand profile every API workflow reads: products, competitors, category, and exclusion terms. This is the same object `GET /v1/brand-profile` returns; see [Brand profile](/brand-profile) for what each field changes.
 
 ## Related
 
@@ -94,6 +94,6 @@ The brand profile every API workflow reads — products, competitors, category, 
     How metering works, and what each unit costs.
   </Card>
   <Card title="Authentication" icon="key" href="/authentication">
-    Key modes, and why the prefix does not tell you which one you have.
+    Key modes, and what a test key can and cannot do.
   </Card>
 </CardGroup>

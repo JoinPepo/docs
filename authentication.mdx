@@ -21,19 +21,19 @@ A key's **mode** decides what it can do, and the token's prefix states which.
 | `pk_live_` | `live` | Reads your real corpus, meters real credits, and can start collection. |
 | `pk_test_` | `test` | Reads your real corpus **unmetered and read-only**, and cannot start collection. |
 
-A test key is not a sandbox full of fake data. It reads the corpus already collected for *your* workspace, so your integration is exercised against your own products, competitors and exclusion terms — the responses have the shape production will return. It simply never spends.
+A test key is not a sandbox full of fake data. It reads the corpus already collected for *your* workspace, so your integration is exercised against your own products, competitors and exclusion terms: the responses have the shape production will return. It simply never spends.
 
 That works because the cost is in collection, not in reading. A test key cannot start one, so there is nothing to charge for. Test keys are **rate limited** rather than balance limited, since they have no balance to draw down.
 
 <Note>
-Every test-mode response carries `test_mode: true` and reports `usage.metered_usd` — what the same call would have cost on a live key. You can size your spend before committing to it.
+Every test-mode response carries `test_mode: true` and reports `usage.metered_usd`: what the same call would have cost on a live key. You can size your spend before committing to it.
 </Note>
 
 <Warning>
 `test` was documented for a long time as "returns fixture data and meters nothing" while being unimplemented, which meant it quietly behaved exactly like `live` and spent real credits. It is implemented now, and this page describes what it actually does. If you hold a key issued before that, replace it.
 </Warning>
 
-Keys are created in the [Pepo dashboard](https://app.joinpepo.com) by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable** — only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
+Keys are created on the [API keys page](https://joinpepo.com/launch?to=api-keys) by a workspace owner or admin. **The plaintext is shown once, at creation, and is never recoverable**: only a SHA-256 hash is stored. A lost key is replaced, not retrieved.
 
 <Note>
 During the pilot your first key is issued to you directly, alongside your base URL. Ask at [contact@joinpepo.com](mailto:contact@joinpepo.com) if you need one added, rotated, or topped up.
@@ -43,7 +43,7 @@ Revoking is immediate and leaves the key's usage history intact, so an audit of 
 
 ## Sample data is a property of the workspace, not the key
 
-Some workspaces hold sample data rather than a real brand's — the public demo is one. Responses from those carry `demo: true` and say so in words.
+Some workspaces hold sample data rather than a real brand's: the public demo is one. Responses from those carry `demo: true` and say so in words.
 
 That is deliberately **not** tied to the key's mode. A test key on your own workspace reads your own videos, so it does not claim otherwise; the same mode on the demo workspace does. Reading provenance off the key would mean telling you your own data was somebody's sample.
 
@@ -51,12 +51,12 @@ That is deliberately **not** tied to the key's mode. A test key on your own work
 
 No endpoint accepts a brand, tenant, or workspace identifier, and none will.
 
-This is not a convenience decision. The primary consumer of this API is a language model assembling request bodies from a conversation, and a conversation can contain text placed there by someone other than your user — a video caption, a comment, a competitor's post. A tenant identifier that a model can be talked into changing is a cross-tenant data leak with a plausible-looking cause. Deriving the workspace from the credential removes the class of bug rather than mitigating it.
+This is not a convenience decision. The primary consumer of this API is a language model assembling request bodies from a conversation, and a conversation can contain text placed there by someone other than your user: a video caption, a comment, a competitor's post. A tenant identifier that a model can be talked into changing is a cross-tenant data leak with a plausible-looking cause. Deriving the workspace from the credential removes the class of bug rather than mitigating it.
 
 The practical consequence: one key, one workspace. An agency covering four brands holds four keys.
 
 <Note>
-Sending a `brand_id` in a request body is not an error — it is ignored. The response will always describe the workspace the key belongs to.
+There is no field to send one in. The metered endpoints refuse any field they do not recognise, `brand_id` included, with a `400` naming it; the rest ignore it. Either way the response describes the workspace the key belongs to.
 </Note>
 
 ## Failure is deliberately uninformative
@@ -84,6 +84,6 @@ A probing client learns nothing from the difference between them, which is the p
 
 Both keys work during the overlap, so there is no window where a scheduled job fails.
 
-## OAuth
+## Signing in instead of a key
 
-Bearer keys are what ships today. OAuth 2.1 with dynamic client registration is planned for the MCP connector path, which is what turns "paste your key into the connector settings" into a one-click **Add to Claude** with real per-user revocation. Until then, treat an MCP connector key as a shared workspace credential.
+The REST API always takes a key. The MCP server can also be connected by signing in with your Pepo account, in hosts that support it: the connection then acts as you, can reach any workspace you own or administer, and adds a `list_workspaces` tool for choosing one. See [Connect](/mcp/connect). A key pasted into a connector is a shared workspace credential; treat it like one.

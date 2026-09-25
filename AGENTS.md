@@ -4,7 +4,7 @@
 
 - The public documentation for [Pepo](https://joinpepo.com), built on [Mintlify](https://mintlify.com).
 - Pages are MDX with YAML frontmatter. Configuration lives in `docs.json`.
-- `openapi.json` drives the entire **API reference** tab and its playground. It is the contract customers generate clients from — a stale field here becomes a broken integration somewhere else.
+- `openapi.json` drives the entire **API reference** tab and its playground. It is the contract customers generate clients from: a stale field here becomes a broken integration somewhere else.
 - Source of truth for the API and MCP server is the `pepo-marketing` repo (`convex/http.ts`, `mcp/`). Its `docs/api/README.md` and `docs/mcp/README.md` are the **internal** contracts, and they intentionally document more than this site does. See [Content boundaries](#content-boundaries).
 - For Mintlify product knowledge (components, configuration): `npx skills add https://mintlify.com/docs`, or the docs MCP server at `https://www.mintlify.com/docs/mcp`.
 
@@ -15,6 +15,7 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 | Use | Not | Why |
 |---|---|---|
 | **workspace** | account, tenant, project | One brand's data and members. An API key belongs to exactly one. |
+| **library** | dataset, corpus (in prose) | The public video Pepo holds for a workspace, analyzed once and asked many times. The API's own paths and fields say `corpus`; keep those verbatim. |
 | **brand profile** | brand settings, config | The approved memory file every workflow reads. Distinct from workspace presentation settings. |
 | **observed content views** / **potential exposures** | impressions | Real ad impressions need first-party or Ads Manager data. Never call public views impressions. |
 | **snapshot** | data point, reading | One timestamped observation of a video's metrics. The unit the trending gate counts. |
@@ -27,9 +28,10 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 
 - Active voice, second person ("you").
 - One idea per sentence. Sentence case for headings.
+- No em dashes or en dashes, anywhere. Use a comma, a colon or a full stop. Where an API response itself contains one, describe it in words rather than pasting it.
 - Bold for UI elements: click **Settings**. Code formatting for file names, commands, paths, fields, and endpoints.
 - Prefer a table or a callout over a long paragraph when the content is a list of rules.
-- **State the reason, not just the rule.** "A video is only called trending with three snapshots across twelve hours" is half a doc; the other half is *why* — one observation is not a trajectory. Readers who understand the reason can extrapolate to cases we did not document.
+- **State the reason, not just the rule.** "A video is only called trending with three snapshots across twelve hours" is half a doc; the other half is *why*: one observation is not a trajectory. Readers who understand the reason can extrapolate to cases we did not document.
 
 ## Content boundaries
 
@@ -42,7 +44,7 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 **Never remove a caveat to make the docs read better.** The following are load-bearing product claims, not hedging, and each exists because its absence causes a specific failure:
 
 - The impressions disclaimer.
-- `search_method` — that search covers captions and creator handles only, so an empty result means "not found in captions," never "no such video exists."
+- `search_method`: search matches captions, creator handles, stored analysis and reviewed pilot evidence, not transcripts or what is on screen, so an empty result means "not found in what is searchable," never "no such video exists."
 - The snapshot gate, and that `gated_by` results must not be described as trending.
 - Coverage alongside any aggregate, especially comment tone.
 - That `null` means unobserved and is never rendered as `0`.
@@ -53,13 +55,13 @@ Use the product's own vocabulary; these words carry specific meaning and are not
 
 ## Diagrams
 
-Diagrams are hand-authored SVG in `snippets/diagrams.jsx`, imported into a page as a component. **Do not use mermaid** — it renders, but it looks like tool output, which is wrong for an audience that includes marketers evaluating the product.
+Diagrams are hand-authored SVG in `snippets/diagrams.jsx`, imported into a page as a component. **Do not use mermaid**: it renders, but it looks like tool output, which is wrong for an audience that includes marketers evaluating the product.
 
-Three constraints, each of which fails *silently* — no console error, no placeholder, the element just does not appear:
+Three constraints, each of which fails *silently*: no console error, no placeholder, the element just does not appear:
 
 - **Inline `<svg>` in MDX is stripped**, in both JSX and plain-HTML attribute form. It must be a component in `snippets/`.
 - **Each diagram must be one self-contained exported component.** Helper sub-components defined in the same file are not resolved at render time.
-- **No `<foreignObject>`** — Mintlify's CDN strips it, which is also why draw.io SVG exports lose their text.
+- **No `<foreignObject>`**: Mintlify's CDN strips it, which is also why draw.io SVG exports lose their text.
 
 Because every failure is silent, a diagram cannot be reviewed in a diff. Look at the rendered page, and confirm a label from the drawing actually appears in the DOM.
 
@@ -69,19 +71,19 @@ Keep new diagrams consistent with the existing ones:
 
 - **Neutral elements use `currentColor`** at low opacity (fill ~0.04, stroke ~0.14), so one drawing works on light and dark grounds with no second asset.
 - **One accent, `#4FB3A0`**, reserved for the element the diagram is actually about. The brand's `#264548` disappears on dark and `#7FD4C8` washes out on light; this mid-teal reads on both.
-- **SVG text does not wrap, and nothing warns you when it overflows.** It runs straight through borders, arrows and neighbouring shapes, then off the canvas. Budget roughly 6px per character at 13px: a 470-wide card holds about 70 characters, a 156-wide one holds about 18. If a label does not fit, widen the card or shorten the label — never assume it will wrap.
+- **SVG text does not wrap, and nothing warns you when it overflows.** It runs straight through borders, arrows and neighbouring shapes, then off the canvas. Budget roughly 6px per character at 13px: a 470-wide card holds about 70 characters, a 156-wide one holds about 18. If a label does not fit, widen the card or shorten the label: never assume it will wrap.
 - **Prefer wide stacked cards to narrow side-by-side ones.** Four cards across a 720 viewBox leaves no room to say anything, which is how the credits diagram ended up with its descriptions overlapping the arrows.
 - **Type runs larger than it looks.** A 720-wide viewBox displays at roughly 590px, so everything scales to ~0.82. Titles are 16, descriptions 13.5.
 - **Watch the right edge.** Text near the viewBox width clips without warning, and right-aligned text needs to stop ~20px short of a card's border or it sits flush against it.
-- **Never draw a connector behind a translucent shape.** Cards and dots sit at low fill opacity, so a line routed behind one shows straight through it. Draw connectors as segments in the gaps instead — that stays correct in both themes, where an opaque "knockout" fill would not.
+- **Never draw a connector behind a translucent shape.** Cards and dots sit at low fill opacity, so a line routed behind one shows straight through it. Draw connectors as segments in the gaps instead: that stays correct in both themes, where an opaque "knockout" fill would not.
 - Wrap in `<figure>` with a `<figcaption>` and give the `<svg>` `role="img"` and an `aria-label` carrying the same claim.
 
 ## Working locally
 
 ```bash
 npx mint@latest dev            # preview on :3000
-npx mint@latest broken-links   # link check — run before every PR
+npx mint@latest broken-links   # link check, run before every PR
 npx @redocly/cli@latest lint openapi.json
 ```
 
-Pushing to the default branch publishes. Verify a rendered page rather than trusting that the MDX compiled — the API reference tab in particular fails in ways that only show up visually.
+Pushing to the default branch publishes. Verify a rendered page rather than trusting that the MDX compiled: the API reference tab in particular fails in ways that only show up visually.
