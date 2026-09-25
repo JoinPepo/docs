@@ -3,124 +3,190 @@ title: "Tools"
 description: "What the assistant can do once Pepo is connected."
 ---
 
-Fourteen tools, each doing one nameable job. Three are free, one writes, and the rest read your corpus.
+Twenty-eight tools, each doing one nameable job. A connection made by signing in with a Pepo account adds a twenty-ninth, `list_workspaces`, for choosing which of your workspaces to ask about.
 
-## Free
+Each tool is a client of the [REST API](/api-reference/account/get-credit-balance) and bills exactly as the endpoint it calls. Paging through what you have already collected is free; searching, asking and the brand reads cost credits; growing the library costs what you budget for it.
 
-<ResponseField name="check_credits" type="tool">
+## Account
+
+<ResponseField name="check_credits" type="free">
   Prepaid balance, mode, and the default per-call ceiling. Never meters.
 </ResponseField>
 
-<ResponseField name="estimate_cost" type="tool">
-  What a workflow call would cost, as a low/expected/high band with the assumptions behind it — including how many candidate videos would be analysed. Never meters.
+<ResponseField name="estimate_cost" type="free">
+  What a call would cost, as a low/expected/high band with the assumptions behind it, including how many stored posts it would read. Never meters.
 
   Worth encouraging explicitly: *"price it before you run it."* An assistant that can see the cost proposes the affordable version first.
 </ResponseField>
 
-<ResponseField name="get_brand_profile" type="tool">
-  Your approved profile — products, competitors, category, exclusions. Returns `needs_setup` with the fix rather than an error when there is no profile yet.
+<ResponseField name="get_brand_profile" type="free">
+  Your approved profile: products, competitors, category, official accounts, exclusions. Returns `needs_setup` with the fix rather than an error when there is no profile yet.
 </ResponseField>
 
-## The one tool that writes
-
-<ResponseField name="set_brand_profile" type="tool">
-  Creates or updates the brand profile — products, competitors, category, exclusion terms.
-
-  This is the **only** tool in the server that changes anything. It writes to your workspace's profile and nowhere else: it cannot send a message, update a CRM, or publish. On a `demo` key it is refused outright with `403 demo_read_only`.
+<ResponseField name="set_brand_profile" type="free, writes">
+  Creates or updates the brand profile. The assistant is told to show you the draft and get your confirmation before saving, because a profile nobody checked makes every later answer wrong in the same direction. Refused on a test key.
 </ResponseField>
 
-## Discovery
+## Reading the library
 
-<ResponseField name="find_trending" type="tool">
-  Ranked videos with momentum, classification, confidence, observation coverage, and the comparison group.
+<ResponseField name="list_videos" type="free">
+  Page the videos in the library, with a quality block: gaps, duplicates, coverage, composition, and a verification statement that distinguishes *complete* from *confirmed*. Each row carries the video's overall sentiment from its analysis, when it has one.
 
-  Optional: `platforms`, `window` (`24h`, `7d`, `30d`), `limit`, `min_views`, `max_cost_usd`.
-
-  Renders the **trend board** panel — a sortable table showing each score with its snapshot count and confidence underneath, and a gated row's reason spelled out in the row itself.
+  Renders the **dataset panel**.
 </ResponseField>
 
-<ResponseField name="search_videos" type="tool">
-  Find videos by topic, product or creator.
-
-  Optional: `query`, `platforms`, `window`, `limit`, `min_views`, `max_cost_usd`.
-
-  Every response states what was searched — today, captions and creator handles. An empty result means "not found in captions," and the tool says so, so an assistant never reports it as "no such video exists."
+<ResponseField name="export_videos" type="free">
+  The same videos as CSV text, for pasting into a sheet.
 </ResponseField>
 
-<ResponseField name="get_video" type="tool">
-  One video in full: engagement, the observation history behind any momentum claim, and a sample of comments with their tone **and the coverage of that tone**.
-
-  Renders the **video panel** — thumbnail, a views-over-time sparkline drawn only when there are at least two observations, and the tone split shown against how many comments were actually classified.
+<ResponseField name="list_comments" type="free">
+  Page the public comments collected under the library's videos, verbatim, with each comment's tone, topics and source link. Tone belongs to the comment, and a count of comments is not a count of people.
 </ResponseField>
 
-<ResponseField name="find_creators" type="tool">
-  Creators for a product, topic or audience, ranked on **medians rather than means** so one breakout post cannot carry a roster spot.
+<ResponseField name="get_video" type="free">
+  One video in full: engagement, the observation history behind any momentum claim, what it says and shows, and a sample of comments with their tone **and the coverage of that tone**.
 
-  Each creator carries an evidence level (`provisional`, `moderate`, `measured`) set by how many posts were actually observed, and implausible engagement is **flagged rather than silently capped**. The safety line says what was checked: no creator matching an exclusion term is not the same as a creator cleared for a partnership, and the tool says so rather than letting silence imply approval.
-
-  Renders the **creator panel**.
+  Renders the **video panel**.
 </ResponseField>
 
-## Analysis
+<ResponseField name="library_gaps" type="free">
+  Recent questions asked through `ask_library` and `search_videos` that the library could not answer well, grouped with the questions themselves, so you can decide what to add. It never changes anything on its own.
+</ResponseField>
 
-<ResponseField name="share_of_voice" type="tool">
-  Your share of observed conversation against your competitors, over a window.
+## Asking and searching
 
-  Posts naming both you and a competitor are counted for **neither** side rather than being split, and the response states how much of the corpus went unattributed. Where that share is high enough to make the split meaningless, the result says so instead of returning a confident percentage.
+<ResponseField name="ask_library" type="metered">
+  The brainstorming tool. A plain-language question answered from what the videos actually say and show, with the creator, link and clip time under every paragraph. When two or more videos are cited it also counts, across exactly those videos, sentiment, format, setting, mood, the brands and products on screen and recurring actions, so a comparison rests on numbers rather than on eight paragraphs tallied by eye.
+
+  If some videos in the library have not been analyzed yet, it says how many and what catching up would cost, charges nothing, and waits for your yes. A question no video could answer (who the audience is, what sold, what was spent on ads) is refused with the reason.
+
+  Renders the **evidence panel**.
+</ResponseField>
+
+<ResponseField name="search_videos" type="metered">
+  Find videos by topic, product or creator. It matches words in captions, creator handles and each video's stored analysis (summary, hook, themes, claims). Transcripts and what is on screen are not searched here; ask about those with `ask_library`.
+
+  Every response states what was searched, so an empty result reads as "not found in what is searchable," never "no such video exists."
+
+  Renders the **trend board** panel.
+</ResponseField>
+
+## Brand and creator reads
+
+<ResponseField name="find_trending" type="metered">
+  Ranked videos with momentum, classification, confidence, observation coverage, and the comparison group. Nothing is called trending on fewer than three snapshots across twelve hours, however large its view count.
+
+  Renders the **trend board** panel.
+</ResponseField>
+
+<ResponseField name="share_of_voice" type="metered">
+  Your share of observed views against your competitors. Views are observed content views, never ad impressions.
+
+  Posts naming both you and a competitor are counted for **neither** side, and the response states how much went unattributed. Where the library cannot support a split (most often because it was collected by searching for your own brand), it says so instead of returning a confident percentage.
 
   Renders the **share of voice panel**.
 </ResponseField>
 
-<ResponseField name="competitor_report" type="tool">
-  What changed for one competitor between two periods, as a waterfall whose rows sum to the total by construction — a truncated list emits an explicit remainder row rather than quietly not adding up.
+<ResponseField name="competitor_report" type="metered">
+  What changed for one competitor between two periods, as a waterfall whose rows sum to the total by construction: a truncated list emits an explicit remainder row rather than quietly not adding up.
 
   When the two periods were not observed to comparable depth, the report refuses to be read as market movement **and returns the window that would work**, so the next question is a re-run rather than a dead end.
 
   Renders the **competitor panel**.
 </ResponseField>
 
-<ResponseField name="product_insights" type="tool">
-  What people say about one product or SKU — drivers, complaints, requests, use cases — drawn from captions and comments.
+<ResponseField name="product_insights" type="metered">
+  What people say about one of your own products: drivers, complaints, needs, use cases, from captions and comments. A competitor's product goes to `competitor_report` instead.
 
-  A theme becomes a *finding* only above an evidence floor of **three distinct sources and two distinct voices**; five comments from one account is one person. Themes below the floor come back in a separate list that is deliberately not chartable, so an unestablished theme cannot be ranked beside an established one.
+  A theme becomes a *finding* only above an evidence floor of **three distinct sources and two distinct voices**: five comments from one account is one person. Themes below the floor come back in a separate list that is deliberately not chartable.
 
   Renders the **product panel**.
 </ResponseField>
 
-<ResponseField name="campaign_report" type="tool">
-  Social response around a launch or campaign.
+<ResponseField name="find_creators" type="metered">
+  Creators for a product, topic or audience, ranked on **medians rather than means** so one breakout post cannot carry a roster spot.
 
-  It splits **owned versus not-owned** and refuses to split paid from earned, because nothing in a social corpus records whether a post was promoted. It also refuses to call any of it *lift*: there is no control group, so the report describes what happened around the launch, not what the launch caused.
+  Each creator carries an evidence level (`provisional`, `moderate`, `measured`) set by how many posts were observed, and one-post creators are listed but never ranked. No creator matching an exclusion term is not the same as a creator cleared for a partnership, and the tool says so.
+
+  Renders the **creator panel**.
+</ResponseField>
+
+<ResponseField name="campaign_report" type="metered">
+  What happened around a launch or campaign.
+
+  It splits **owned versus not-owned** and refuses to split paid from earned, because nothing in the library records whether a post was promoted. It also refuses to call any of it *lift*: there is no control group, so the report describes what happened around the launch, not what the launch caused.
 
   Renders the **campaign panel**.
 </ResponseField>
 
-## The corpus itself
+## Growing the library
 
-<ResponseField name="list_records" type="tool">
-  Page the collected dataset, with a quality block: gaps, duplicates, coverage, composition, and a verification statement that distinguishes *complete* from *confirmed*.
-
-  Reading rows is unmetered — they were paid for at collection.
-
-  Renders the **dataset panel**.
+<ResponseField name="preview_add_videos" type="$0.01">
+  One search page per platform for a subject, with nothing saved: a look at what the platforms actually return before a collection spends a budget on it. It says how much of the page names the subject and suggests a better search when it does not. Worth calling first for any person, band or unusual word.
 </ResponseField>
 
-<ResponseField name="export_dataset" type="tool">
-  The same dataset as CSV, for taking away.
+<ResponseField name="add_videos" type="budgeted">
+  Starts an unattended run that adds video about a subject to the library. It needs a budget, and by default each video it keeps is checked for being about the subject, analyzed, made searchable, and has its comments read. Returns straight away; the run continues on its own.
+
+  Renders the **collection panel**.
+</ResponseField>
+
+<ResponseField name="get_collection" type="free">
+  Where a run stands: videos landed against the target, cost against its budget, each processing step with what it kept, time left, and any quality warnings.
+
+  Renders the **collection panel**.
+</ResponseField>
+
+<ResponseField name="list_collections" type="free">
+  Recent runs, most recent first.
+</ResponseField>
+
+<ResponseField name="cancel_collection" type="free">
+  Stops a run early. Billing settles for what landed, never the full budget.
+</ResponseField>
+
+<ResponseField name="analyze_library" type="metered">
+  Analyzes the videos already in the library that have not been analyzed yet. It collects nothing new. The assistant is told to call it only after `ask_library` has quoted the cost and you have said yes.
+
+  Renders the **collection panel**.
+</ResponseField>
+
+<ResponseField name="cancel_analysis_run" type="free">
+  Stops the processing behind a run or an analysis pass after the step it is on, billed only for the work completed.
+</ResponseField>
+
+## Keeping it growing
+
+<ResponseField name="schedule_collection" type="budgeted, recurring">
+  A standing order: every day or week, add video for one or more subjects, under a required monthly cap.
+
+  Renders the **schedule panel**.
+</ResponseField>
+
+<ResponseField name="list_scheduled_collections" type="free">
+  Every schedule with its budget used this period and next run, or one schedule with its recent runs.
+</ResponseField>
+
+<ResponseField name="update_scheduled_collection" type="free">
+  Add or remove subjects, or change the target or monthly cap, without recreating the schedule.
+</ResponseField>
+
+<ResponseField name="pause_scheduled_collection" type="free">
+  Stops a schedule from starting further runs. A run already started carries on and settles.
 </ResponseField>
 
 ## What a result looks like
 
-Tools return a readable summary first — this is what the assistant reads and paraphrases — with the full structured payload behind it.
+Tools return a readable summary first, which is what the assistant reads and paraphrases, with the full structured payload behind it. A `find_trending` summary:
 
 ```
 5 video(s) ranked for this workspace from 28 in the corpus.
 4 watchlist · 1 trending
 
-@breakout — 240k views · momentum 87 (trending, medium confidence, 3 snapshot(s) over 24h, vs 27 comparable)
-  https://tiktok.com/@breakout/video/…
-@thin — 800k views · momentum 87 (watchlist, low confidence, 2 snapshot(s) over 3h, vs 27 comparable)
-  https://tiktok.com/@thin/video/…
+@breakout: 240k views · momentum 87 (trending, medium confidence, 3 snapshot(s) over 24h, vs 27 comparable)
+  https://tiktok.com/@breakout/video/...
+@thin: 800k views · momentum 87 (watchlist, low confidence, 2 snapshot(s) over 3h, vs 27 comparable)
+  https://tiktok.com/@thin/video/...
 
 Cluster verdict: viral_video (5 accelerating video(s) from 1 independent creator(s); top creator holds 77% of views).
   A single video/creator dominates. One video outperforming is virality, not a trend.
@@ -138,7 +204,7 @@ The warnings are in the summary rather than only in the structured data, because
 
 ## Panels
 
-Eight of the tools render an interactive panel via the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview) — trend board, video, share of voice, competitor, product, creators, campaign, and dataset.
+Twenty-one of the tools render an interactive panel via the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview): credits and cost, brand profile, dataset, trend board, video, evidence, share of voice, competitor, product, creators, campaign, collection and schedule.
 
 Where a payload refuses to support a claim, **the panel draws the refusal first and mutes the chart beneath it** rather than hiding either. A chart is a far more persuasive place to be wrong than a JSON field, so the competitor waterfall will not draw at all if its rows do not sum to the total it claims to explain.
 
@@ -146,4 +212,4 @@ Where a host does not support the extension, the same information comes back as 
 
 ## Nothing here publishes
 
-`set_brand_profile` is the only tool that writes, and it writes only your own brand profile. No tool sends a message, updates a CRM, or publishes anything.
+No tool sends a message, updates a CRM, or posts anywhere. The tools that change anything change only your own workspace: `set_brand_profile`, the collection and analysis tools, and the schedule tools. Every one of them is refused on a test key.

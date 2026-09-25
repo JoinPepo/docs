@@ -1,56 +1,75 @@
 ---
 title: "Pepo"
-description: "Ask what's happening to your brand on social video, and get an answer with its evidence."
+description: "A growing library of public social video, analyzed once, that you can question from Claude, ChatGPT or your own code."
 ---
 
-Pepo watches social video for your brand — your posts, your competitors', and the far larger volume of content where people discuss you without tagging you — and answers questions about it in plain language.
+Pepo keeps a library of public TikTok and Instagram video, plus public Reddit threads, for your workspace. Every video is analyzed once when it arrives: a timed transcript, a record of what is on screen, and a summary of what the creator says and how they feel about it. After that you can search it, count it and question it as often as you like.
 
-You ask from Claude or ChatGPT. Or you call the API and build it into your own product.
+The library covers the video people post about you and your competitors, including the far larger volume where a brand is discussed or shown without being tagged. Your own posts are recognized and set aside: they are never counted as what people think.
+
+You work with it by talking to an agent in Claude or ChatGPT and following up, the way you would brainstorm with an analyst who has watched every video. Or you call the API and build it into your own product.
 
 ```
-Which of our videos is actually taking off this week —
-and is that a real trend, or one creator having a moment?
+What do people complain about in the knee sleeve videos,
+and do the ones that show the product being worn say something different?
 ```
+
+## Who it is for
+
+<CardGroup cols={2}>
+  <Card title="Consumer brands" icon="tag">
+    What people see, say and feel about your brand and your competitors: which products appear on screen, what gets praised and what gets complained about, and which creators keep coming back to it.
+  </Card>
+  <Card title="Creators" icon="video">
+    What works in a niche: the hooks, formats and settings that recur, and how the videos that land differ from the ones that do not.
+  </Card>
+</CardGroup>
 
 ## What you can ask today
 
 <CardGroup cols={2}>
-  <Card title="What's taking off" icon="arrow-trend-up">
-    Ranked video by momentum, with the observation history behind each call — and an explicit split between one video going viral and a movement across creators.
+  <Card title="Ask the videos" icon="comments">
+    A plain-language question answered from what the videos say and show, with the creator, link and clip time under every paragraph, and counts across the cited videos so a comparison rests on numbers.
   </Card>
   <Card title="Find specific video" icon="magnifying-glass">
-    Search your corpus by product, topic or creator. Get links, engagement and captions back as a table or an export.
+    Search the library by product, topic or creator. Get links, engagement and captions back as a table or an export.
   </Card>
-  <Card title="Go deep on one video" icon="film">
-    Engagement over time, comment reaction and tone, and the evidence behind any claim made about it.
+  <Card title="What is taking off" icon="arrow-trend-up">
+    Ranked video by momentum, with the observation history behind each call, and an explicit split between one video going viral and a movement across creators.
+  </Card>
+  <Card title="Brand and competitor reads" icon="chart-simple">
+    Share of observed views against competitors, what changed for a competitor, what people say about your products, which creators to work with, and what happened around a launch.
+  </Card>
+  <Card title="Grow the library" icon="plus">
+    Add video for a new subject on a budget you set, check first what a search would actually return, and keep it growing on a schedule.
   </Card>
   <Card title="Know the cost first" icon="calculator">
-    Price any call before you run it. Estimates match the invoice.
+    Price any call before you run it. Paging through what you have already collected is free.
   </Card>
 </CardGroup>
 
 ## What makes the answers usable
 
-**You can see what's behind every number.** A momentum score arrives with how many observations it rests on, how many hours they span, and how many comparable videos it was ranked against. When someone asks where a number came from, you can answer.
+**You can see what is behind every answer.** An answer to a question cites the video and the clip it came from. A momentum score arrives with how many observations it rests on, how many hours they span, and how many comparable videos it was ranked against. When someone asks where a claim came from, you can answer.
 
-**Size and momentum are different questions.** A video with a lot of views is a big video. Whether something is *happening* is a claim about trajectory, and Pepo scores each video against genuinely comparable ones and against the creator's own normal — so a 40k-view video from a small creator can outrank an 800k-view video from a mega-account. Usually that smaller one is the one worth acting on.
+**Size and momentum are different questions.** A video with a lot of views is a big video. Whether something is *happening* is a claim about trajectory, and Pepo scores each video against comparable ones and against the creator's own normal, so a 40k-view video from a small creator can outrank an 800k-view video from a mega-account.
 
-**One video ≠ a trend.** The cluster verdict is reported separately from the ranking, so you know whether you're looking at one creator having a big week or a format multiple independent creators are picking up.
+**One video is not a trend.** The cluster verdict is reported separately from the ranking, so you know whether you are looking at one creator having a big week or a format multiple independent creators are picking up.
 
-**It tells you when it doesn't know.** A brand-new workspace says so rather than scoring off a single observation. That's the difference between a number you can take into a meeting and one you'll get caught on.
+**It tells you when it does not know.** A question no video could answer (who the audience is, what sold, what was spent on ads) comes back as a refusal with the reason, not a guess. Views are observed content views, never ad impressions, and nothing here measures paid media, sales or demographics.
 
 ## Two ways in
 
 <CardGroup cols={2}>
   <Card title="From Claude or ChatGPT" icon="plug" href="/mcp/overview">
-    Connect Pepo and ask in plain language. For marketing and insights teams. No code.
+    Connect Pepo and ask in plain language. No code.
   </Card>
   <Card title="From your own code" icon="code" href="/quickstart">
-    The same workflows over HTTP.
+    The same capabilities over HTTP.
   </Card>
 </CardGroup>
 
-The MCP server is built on this API and has no privileged path of its own — anything it can do, your own code can do.
+The MCP server is built on this API and has no privileged path of its own: anything it can do, your own code can do.
 
 ## Start here
 
@@ -59,7 +78,7 @@ The MCP server is built on this API and has no privileged path of its own — an
     Key to first answer.
   </Card>
   <Card title="Where your data comes from" icon="database" href="/corpus">
-    How your corpus is built and kept current.
+    How your library is built and kept current.
   </Card>
   <Card title="How trending is decided" icon="chart-line" href="/measurement">
     The scoring and the evidence behind it.

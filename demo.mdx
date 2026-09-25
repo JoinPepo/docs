@@ -11,9 +11,9 @@ You do not need a workspace, a credit card, or a sales call to see what Pepo ans
 | **MCP** | `https://mcp.joinpepo.com/mcp` |
 | **REST** | `https://api.joinpepo.com` |
 
-This is a **`test` key on a sample workspace** — the same key type you would use against your own brand, pointed at a demo one. It never meters, never collects, and is read-only, so it is safe to publish: it cannot run up a bill or change the workspace it showcases.
+This is a **`test` key on a sample workspace**: the same key type you would use against your own brand, pointed at a demo one. It never meters, never collects, and is read-only, so it is safe to publish: it cannot run up a bill or change the workspace it showcases.
 
-Two labels travel with every response, and they mean different things. `test_mode: true` says nothing was charged. `demo: true` says the videos and creators are a sample rather than a real brand's — that one comes from the workspace, so a test key on *your* workspace would not carry it.
+Two labels travel with every response, and they mean different things. `test_mode: true` says nothing was charged. `demo: true` says the videos and creators are a sample rather than a real brand's: that one comes from the workspace, so a test key on *your* workspace would not carry it.
 
 <Note>
 `usage.metered_usd` reports what each call would have cost on a live key, so you can size real pricing while paying nothing. See [Authentication](/authentication) for what the modes do.
@@ -31,7 +31,7 @@ Two labels travel with every response, and they mean different things. `test_mod
     `claude mcp list` should report `pepo: … ✔ Connected`.
   </Tab>
   <Tab title="Cursor">
-    Open this link — Cursor's install-link scheme takes the whole config:
+    Open this link: Cursor's install-link scheme takes the whole config:
 
     ```
     cursor://anysphere.cursor-deeplink/mcp/install?name=pepo&config=eyJ1cmwiOiAiaHR0cHM6Ly9tY3Auam9pbnBlcG8uY29tL21jcCIsICJoZWFkZXJzIjogeyJBdXRob3JpemF0aW9uIjogIkJlYXJlciBwa190ZXN0XzRmNzUzNmZmNWY5Y2RkMWExOWEyOGY2YTM4ZTAyMDE1In19
@@ -43,7 +43,7 @@ Two labels travel with every response, and they mean different things. `test_mod
     ```
   </Tab>
   <Tab title="ChatGPT">
-    There is **no install link** for ChatGPT — OpenAI does not publish a URL scheme for custom connectors, so it has to go through the UI.
+    There is **no install link** for ChatGPT: OpenAI does not publish a URL scheme for custom connectors, so it has to go through the UI.
 
     <Steps>
       <Step title="Enable developer mode">
@@ -82,7 +82,7 @@ The Cursor and VS Code links are built to each vendor's documented install-link 
 
 ## The demo script
 
-Seven prompts. Ask them in order — each shows something the last one did not, and **most of them include the product declining to answer part of what was asked**, which is the part worth watching.
+Seven prompts. Ask them in order: each shows something the last one did not, and **most of them include the product declining to answer part of what was asked**, which is the part worth watching.
 
 <Steps>
   <Step title="It uses the corpus, not the web">
@@ -98,7 +98,7 @@ Seven prompts. Ask them in order — each shows something the last one did not, 
   <Step title="A number it will not stand behind">
     > Which competitor gained the most ground in the last 7 days?
 
-    On this corpus the answer is *"do not read this as market movement"* — the two periods were not observed to comparable depth, so the change measures the collection rather than the market. It then tells you **which window would work**, so the next question is a re-run rather than a dead end.
+    On this corpus the answer is *"do not read this as market movement"*: the two periods were not observed to comparable depth, so the change measures the collection rather than the market. It then tells you **which window would work**, so the next question is a re-run rather than a dead end.
 
     > Try it again with the window it suggested.
   </Step>
@@ -112,40 +112,40 @@ Seven prompts. Ask them in order — each shows something the last one did not, 
   <Step title="Rank order will mislead you">
     > Which creators should we send product to?
 
-    The highest median views in the roster belongs to a creator whose evidence level is only `provisional` — too few posts for the number to mean much, with one breakout doing the work. Watch it surface the steadier `measured` creators underneath, and watch what it says about safety: no creator matched an exclusion term, and that is **not** a clearance.
+    The highest median views in the roster belongs to a creator whose evidence level is only `provisional`: too few posts for the number to mean much, with one breakout doing the work. Watch it surface the steadier `measured` creators underneath, and watch what it says about safety: no creator matched an exclusion term, and that is **not** a clearance.
   </Step>
   <Step title="Paid versus organic, refused">
     > How did our launch perform, and how much of the lift was paid?
 
-    It splits owned versus not-owned and refuses to split paid from earned, because nothing in a social corpus records whether a post was promoted, boosted, gifted or contracted. It also refuses to call any of it *lift* — there is no control group.
+    It splits owned versus not-owned and refuses to split paid from earned, because nothing in a social corpus records whether a post was promoted, boosted, gifted or contracted. It also refuses to call any of it *lift*: there is no control group.
   </Step>
   <Step title="What is wrong with the data">
     > What videos do we actually have, and what is wrong with them?
 
-    Gaps, duplicates, coverage, and a verification block that distinguishes *complete* from *confirmed*: fields are present and ids are unique, but nothing has been re-checked against the platform since collection — so an empty gap list is not a clean bill of health.
+    Gaps, duplicates, coverage, and a verification block that distinguishes *complete* from *confirmed*: fields are present and ids are unique, but nothing has been re-checked against the platform since collection, so an empty gap list is not a clean bill of health.
   </Step>
 </Steps>
 
 ## What you are looking at
 
-The sample workspace is a skincare brand with competitors, products and a connected owned channel. It is **not a real customer** — the brand is named "Lumi Beauty (Pepo demo — sample data)" for that reason, and every response repeats it.
+The sample workspace is a skincare brand with competitors, products and a connected owned channel. It is **not a real customer**: the brand name itself says it is a Pepo demo with sample data, and every response repeats that.
 
 Two limits worth knowing before you judge the output:
 
 - **The corpus is small**, a few hundred videos over a few days. Several flows refuse to draw conclusions at that size, which is correct behaviour and also means you see the refusals more often than a real workspace would.
 - **Test keys cannot collect.** Collection calls a paid provider, so the sample corpus is fixed rather than growing on your request. Everything else works exactly as it does on a metered key.
 
-The demo corpus is refreshed, so exactly which themes clear the evidence floor changes between runs. The *shape* of the answer — some established, some explicitly not, and the boundary shown rather than hidden — is the thing to look at.
+The demo corpus is refreshed, so exactly which themes clear the evidence floor changes between runs. The *shape* of the answer (some established, some explicitly not, and the boundary shown rather than hidden) is the thing to look at.
 
 ## Then what
 
-`POST /v1/estimate` prices any call before you make it. On a demo key the usage block reports `metered_usd` — what the call *would* have cost — while charging nothing, so you can see real pricing without being billed. That is the number to look at if you are working out whether this is affordable at your volume.
+`POST /v1/estimate` prices any call before you make it. On a demo key the usage block reports `metered_usd`, what the call *would* have cost, while charging nothing, so you can see real pricing without being billed. That is the number to look at if you are working out whether this is affordable at your volume.
 
 This key is rate limited to 30 requests a minute. Test keys have no balance to draw down, so a request limit is the only thing bounding a shared one.
 
 <CardGroup cols={2}>
   <Card title="Full endpoint reference" icon="code" href="/api-reference/account/get-credit-balance">
-    All twelve endpoints, with schemas and a live playground.
+    Every endpoint, with schemas and a live playground.
   </Card>
   <Card title="Connect your own workspace" icon="plug" href="/mcp/connect">
     When you want it pointed at your own brand.

@@ -7,7 +7,7 @@ import { TrendingDecision } from '/snippets/diagrams.jsx'
 
 A video is not trending because it has a lot of views. Views measure size; trending is a claim about a **trajectory**, and a trajectory needs more than one observation.
 
-This page is the method, in full. It's public because you should be able to check it — a score you can't interrogate is a score you can't defend when someone asks.
+This page is the method, in full. It's public because you should be able to check it: a score you can't interrogate is a score you can't defend when someone asks.
 
 <TrendingDecision />
 
@@ -17,7 +17,7 @@ This is the part most often misread: a video is held at `watchlist` for lack of 
 
 Every video is scored as a **percentile within a group of comparable videos**, never as a raw rate. The group is built from the same platform, similar topic or category, similar publishing age, similar creator size, same geography where available, and organic compared with organic.
 
-This matters more than the weights. Raw view velocity is "many views, faster," which structurally favours large accounts — the videos you already knew about. Percentile ranking is what lets a 40k-view video from a 5,000-follower creator outrank an 800k-view video from a mega-account, which is usually the one worth acting on.
+This matters more than the weights. Raw view velocity is "many views, faster," which structurally favours large accounts: the videos you already knew about. Percentile ranking is what lets a 40k-view video from a 5,000-follower creator outrank an 800k-view video from a mega-account, which is usually the one worth acting on.
 
 Every result reports `comparison_group.n`. A small `n` makes any percentile weak, so the number is returned rather than hidden.
 
@@ -31,7 +31,7 @@ Every result reports `comparison_group.n`. A small `n` makes any percentile weak
 | Acceleration | 15% | Whether growth is still speeding up |
 | Share and comment quality | 10% | Conversation rather than applause |
 
-**Creator-baseline lift is the least gameable signal** — it asks whether this video is unusual *for this creator*, which no amount of follower count fakes — so it carries more weight than raw velocity.
+**Creator-baseline lift is the least gameable signal**: it asks whether this video is unusual *for this creator*, which no amount of follower count fakes, so it carries more weight than raw velocity.
 
 When a platform does not expose a metric, the remaining components are reweighted **and the result is marked lower confidence**. A reweighted score is not as good as a complete one and does not pretend to be.
 
@@ -40,13 +40,13 @@ When a platform does not expose a metric, the remaining components are reweighte
 Bands alone are not enough, so classification is gated on observation before it is decided by score:
 
 <Warning>
-Fewer than **3 metric snapshots** or under **12 hours** of observation caps the classification at `watchlist` — regardless of score, and regardless of view count.
+Fewer than **3 metric snapshots** or under **12 hours** of observation caps the classification at `watchlist`: regardless of score, and regardless of view count.
 </Warning>
 
 When that fires, `gated_by` explains it in words you can quote:
 
 ```json
-"gated_by": "Capped at watchlist: 2 snapshot(s) over 3h — \"trending\" requires at least 3 across 12h."
+"gated_by": "Capped at watchlist: 2 spaced observation(s) over 3h. \"trending\" requires at least 3 across 12h."
 ```
 
 This is the rule that most often surprises people, because the video it catches is frequently the biggest one on the list. That is the point. A video with 800k views and three hours of history might be a genuine breakout or might be a paid push that flattens by morning, and nothing in the data yet distinguishes them.
@@ -55,14 +55,14 @@ This is the rule that most often surprises people, because the video it catches 
 
 | Classification | Requires |
 |---|---|
-| `insufficient_data` | Fewer than 2 observations — no trajectory exists to measure |
+| `insufficient_data` | Fewer than 2 observations: no trajectory exists to measure |
 | `watchlist` | Score of 70+, or anything gated |
 | `trending` | Score 80+, top 10% of the comparison group, ≥1.5× the creator's baseline, growth across consecutive snapshots |
 | `breakout` | Score 90+, top 2%, ≥3× baseline, still accelerating |
 | `peaked` | Previously growing; velocity has fallen more than 40% across two consecutive periods |
 | `fading` | Below normal velocity and declining across multiple periods |
 
-`peaked` and `fading` are reported even under the gate. Telling a brand a trend is over is a lower-stakes claim than telling them one exists, so it faces a lower evidence bar — deliberately asymmetric, in the direction that costs less when wrong.
+`peaked` and `fading` are reported even under the gate. Telling a brand a trend is over is a lower-stakes claim than telling them one exists, so it faces a lower evidence bar: deliberately asymmetric, in the direction that costs less when wrong.
 
 ## Viral is not a trend
 
@@ -83,16 +83,16 @@ Reported separately from the per-video ranking, in the `trend` object:
 That last clause is what stops one mega-creator's post being sold to you as a movement. When it fires, the verdict is downgraded and the reason is stated:
 
 ```json
-"reasons": ["One creator accounts for 77% of cluster views — reported as emerging, not confirmed."]
+"reasons": ["One creator accounts for 77% of cluster views; reported as emerging, not confirmed."]
 ```
 
 ## Confidence
 
 `confidence` is a function of observation depth, metric completeness, and comparison-group size:
 
-- **low** — under the gate, two or more metrics missing, or fewer than 20 comparable videos
-- **medium** — gate cleared, one metric missing, or fewer than 50 comparable
-- **high** — 5+ snapshots over 24h+, complete metrics, a substantial comparison group
+- **low**: under the gate, two or more metrics missing, or fewer than 20 comparable videos
+- **medium**: gate cleared, one metric missing, or fewer than 50 comparable
+- **high**: 5+ snapshots over 24h+, complete metrics, a substantial comparison group
 
 Read it before the score. `87 / low confidence / 2 snapshots` and `87 / high confidence / 6 snapshots` are not the same finding, and only one of them belongs in a deck.
 
@@ -100,7 +100,7 @@ Read it before the score. `87 / low confidence / 2 snapshots` and `87 / high con
 
 <AccordionGroup>
   <Accordion title="Views are not impressions">
-    Public video views are observed content views — potential exposures. Real ad impressions need first-party or Ads Manager data. Responses carrying view-derived numbers say so, because that's the distinction most likely to get lost between an API and a slide.
+    Public video views are observed content views: potential exposures. Real ad impressions need first-party or Ads Manager data. Responses carrying view-derived numbers say so, because that's the distinction most likely to get lost between an API and a slide.
   </Accordion>
 
   <Accordion title="Unobserved is not zero">
@@ -115,7 +115,7 @@ Platforms expose *current* counts, not past ones. There is no way to buy back th
 So a newly connected workspace genuinely cannot answer trending questions yet, and the API says so rather than scoring off a single observation:
 
 <Warning>
-**No metric history exists yet for this workspace**, so nothing can be scored for momentum — these are ranked by current engagement only. Trend scoring needs at least 3 snapshots across 12 hours per post.
+**No metric history exists yet for this workspace**, so nothing can be scored for momentum: these are ranked by current engagement only. Trend scoring needs at least 3 snapshots across 12 hours per post.
 </Warning>
 
 That text arrives in the `caveat` field of the response, verbatim, so it survives being read by an assistant and repeated to you.

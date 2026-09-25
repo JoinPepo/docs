@@ -4,11 +4,11 @@ description: "From an API key to your first scored result."
 ---
 
 <Note>
-Pepo is in pilot. You are issued an API key and your base URL together — replace `https://api.joinpepo.com` below with the URL you were given.
+Pepo is in pilot. You are issued an API key and your base URL together: replace `https://api.joinpepo.com` below with the URL you were given.
 </Note>
 
 <Warning>
-**Create your brand profile before anything else.** Every workflow call is refused until one exists — it is what makes results about your brand rather than your category. It is step 2 below, and it is the only step that can block the rest.
+**Create your brand profile before anything else.** Every workflow call is refused until one exists: it is what makes results about your brand rather than your category. It is step 2 below, and it is the only step that can block the rest.
 </Warning>
 
 ## 1. Check your balance
@@ -63,7 +63,7 @@ curl -X POST https://api.joinpepo.com/v1/brand-profile \
 { "status": "approved", "version": 1, "profile": { ... } }
 ```
 
-`brand_names` is the only required field — include spelling variants, since consumers rarely write your brand the way your style guide does. Everything else sharpens the results and can be added later. `exclusions` is worth filling in now: it's enforced on every result, so topics you never want surfaced are withheld before they reach you.
+`brand_names` is the only required field: include spelling variants, since consumers rarely write your brand the way your style guide does. Everything else sharpens the results and can be added later. `exclusions` is worth filling in now: it's enforced on every result, so topics you never want surfaced are withheld before they reach you.
 
 <Tip>
 Prefer not to write JSON? The `pepo-setup-brand` prompt in [Claude](/mcp/overview) researches your brand and drafts the whole profile for you to approve. Same result.
@@ -73,7 +73,7 @@ Full field list: [Brand profile](/brand-profile).
 
 ## 3. Price the call before you make it
 
-Cost tracks how many posts the call reads, which Pepo can count exactly — so the estimate matches the invoice.
+Cost tracks how many posts the call reads, which Pepo can count exactly: so the estimate matches the invoice.
 
 ```bash
 curl -X POST https://api.joinpepo.com/v1/estimate \
@@ -93,7 +93,7 @@ curl -X POST https://api.joinpepo.com/v1/estimate \
 }
 ```
 
-`posts_considered` is what drives the price — how many posts in your corpus match the filters, not how many results you asked for. Narrowing `window` or `platforms` reads fewer posts and costs less; asking for 10 results instead of 25 doesn't change it.
+`posts_considered` is what drives the price: how many posts in your corpus match the filters, not how many results you asked for. Narrowing `window` or `platforms` reads fewer posts and costs less; asking for 10 results instead of 25 doesn't change it.
 
 ## 4. Ask what is trending
 
@@ -104,7 +104,7 @@ curl -X POST https://api.joinpepo.com/v1/trending \
   -d '{"platforms":["tiktok"],"window":"7d","limit":10,"max_cost_usd":5}'
 ```
 
-`max_cost_usd` is a hard ceiling. Work stops there and returns partial results marked `usage.truncated` rather than overrunning it.
+`max_cost_usd` is a ceiling on the charge, not on the work: the call runs to completion, you are never billed above the ceiling, and `usage.charge_capped` says when the ceiling was what stopped the charge. The results are complete either way.
 
 ## 5. Read the result properly
 
@@ -135,7 +135,7 @@ This is the part worth slowing down for. A trimmed real response:
         "confidence": "low",
         "coverage": { "snapshots": 2, "hours_observed": 3 },
         "floors_met": false,
-        "gated_by": "Capped at watchlist: 2 snapshot(s) over 3h — \"trending\" requires at least 3 across 12h."
+        "gated_by": "Capped at watchlist: 2 spaced observation(s) over 3h. \"trending\" requires at least 3 across 12h."
       }
     }
   ],
@@ -165,13 +165,13 @@ Three things to take from it:
 </Steps>
 
 <Warning>
-If `caveat` is non-null, it is the most important field in the response. It says when the corpus cannot support the question you asked — no metric history yet, an empty corpus, or too little history to classify anything. Pass it on rather than summarising around it.
+If `caveat` is non-null, it is the most important field in the response. It says when the corpus cannot support the question you asked: no metric history yet, an empty corpus, or too little history to classify anything. Pass it on rather than summarising around it.
 </Warning>
 
 ## Next
 
 <CardGroup cols={2}>
-  <Card title="Full API reference" icon="code" href="/api-reference/discovery/find-trending-videos">
+  <Card title="Full API reference" icon="code" href="/api-reference/library/find-trending-videos">
     Every endpoint, with a playground.
   </Card>
   <Card title="Use it from Claude instead" icon="plug" href="/mcp/overview">

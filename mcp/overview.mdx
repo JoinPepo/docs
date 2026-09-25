@@ -3,30 +3,32 @@ title: "Pepo in Claude and ChatGPT"
 description: "Connect Pepo as an MCP server and ask in plain language."
 ---
 
-Pepo runs as a [Model Context Protocol](https://modelcontextprotocol.io) server, so you can ask about your brand's social performance inside Claude or ChatGPT without leaving the tool your team already uses.
+Pepo runs as a [Model Context Protocol](https://modelcontextprotocol.io) server, so you can work through your video library inside Claude or ChatGPT, in the tool your team already uses. You ask, the assistant looks, you follow up: the way you would brainstorm with an analyst who has watched every video.
 
 ```
-Which of our videos is actually taking off this week, and is it a trend or just one creator?
+What do people complain about in the knee sleeve videos?
+Now just the ones that show it being worn: is it different?
+Which creators keep coming back to it?
 ```
 
-The assistant calls Pepo, gets ranked results with the evidence behind them, and answers — with links you can open and a cost line you can see.
+The assistant calls Pepo, gets answers with the evidence behind them, and replies with links you can open, the clip each claim came from, and a cost line you can see.
 
 ## What connecting gives you
 
 <CardGroup cols={2}>
   <Card title="Tools" icon="wrench" href="/mcp/tools">
-    Fourteen things the assistant can do: check credits and price a call, find trending video, search the corpus, open one video in full, and run share of voice, competitor, product, creator and campaign analysis over your own data.
+    Twenty-eight things the assistant can do: ask the library a question, search it, page and export it, open one video in full, run share of voice, competitor, product, creator, trending and campaign reads, add video for a new subject and keep it growing, and price any of it first.
   </Card>
   <Card title="Prompts" icon="list-check" href="/mcp/prompts">
     Five ready-made workflows your host shows as slash commands or buttons, so nobody has to read documentation to get started.
   </Card>
 </CardGroup>
 
-Eight of the tools also render an interactive panel in the conversation — trend board, video, share of voice, competitor, product, creators, campaign and dataset — using the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview). Where a host does not support that, the same information comes back as text and links. Nothing depends on the panel rendering.
+Twenty-one of the tools also render an interactive panel in the conversation (answers with their evidence, trend board, video, share of voice, competitor, product, creators, campaign, dataset, collections and more) using the [MCP Apps extension](https://modelcontextprotocol.io/extensions/apps/overview). Where a host does not support that, the same information comes back as text and links. Nothing depends on the panel rendering.
 
 ## The design, in three rules
 
-**Answers carry their own caveats.** Tool results state the confidence, the snapshot count, and whether a claim cleared its evidence bar — in the text the model reads first, not only in the structured payload. A result that has too little history to be called trending says so in a line the assistant will repeat.
+**Answers carry their own caveats.** Tool results state the confidence, the snapshot count, and whether a claim cleared its evidence bar, in the text the model reads first, not only in the structured payload. A result that has too little history to be called trending says so in a line the assistant will repeat, and a question no video could answer is refused with the reason.
 
 **Errors carry a way forward.** Out of credits returns the largest version of your request that still fits your balance. No brand profile returns the setup path. An error that says only "no" ends the conversation.
 
@@ -34,7 +36,7 @@ Eight of the tools also render an interactive panel in the conversation — tren
 
 ## What it costs
 
-The MCP server bills exactly like the API — same prepaid balance, same per-call ceilings. `check_credits` and `estimate_cost` are free and the assistant is told to use them before anything expensive, so you can see the price before agreeing to it.
+The MCP server bills exactly like the API: same prepaid balance, same per-call ceilings. Paging through the library you already have is free. `check_credits` and `estimate_cost` are free and the assistant is told to use them before anything expensive, so you can see the price before agreeing to it.
 
 <CardGroup cols={2}>
   <Card title="Try it in five minutes" icon="play" href="/demo">

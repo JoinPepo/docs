@@ -14,7 +14,7 @@
  *
  * Theming: neutral elements use `currentColor` at low opacity, so one drawing
  * works on light and dark grounds. ACCENT is a mid-tone teal that reads on
- * both — the brand's #264548 vanishes on dark and #7FD4C8 washes out on light.
+ * both: the brand's #264548 vanishes on dark and #7FD4C8 washes out on light.
  * Reserve it for the one element the diagram is actually about.
  */
 
@@ -22,23 +22,23 @@ export const CorpusFlow = () => {
   const stages = [
     {
       n: '1',
-      title: 'Your accounts + discovery queries',
-      desc: 'What you own, plus what your brand profile says to search for',
+      title: 'Subjects to search for',
+      desc: 'Your brand, products, competitors and the problems people search for',
     },
     {
       n: '2',
       title: 'Collection run',
-      desc: 'Reads your timelines and runs the discovery queries',
+      desc: 'Searches TikTok, Instagram and Reddit for each subject',
     },
     {
       n: '3',
-      title: 'Name match',
-      desc: 'A search hit only counts if it is genuinely about your brand',
+      title: 'Subject check',
+      desc: 'A hit counts only if it is really about the subject, never if you posted it',
     },
     {
       n: '4',
-      title: 'Your corpus',
-      desc: 'Posts, creators, captions, comments',
+      title: 'Your library',
+      desc: 'Each video analyzed once: transcript, what is on screen, summary',
       accent: true,
     },
     {
@@ -54,7 +54,7 @@ export const CorpusFlow = () => {
       <svg
         viewBox="0 0 720 476"
         role="img"
-        aria-label="How a post enters your corpus: your accounts and discovery queries feed a collection run; hits are name-matched before they count; matched posts become your corpus; and each post is re-observed over time to build the metric history behind every momentum score."
+        aria-label="How a post enters your library: the subjects your brand profile names are searched in a collection run; each hit is checked against the subject before it counts, and your own posts never count; kept videos are analyzed once and become your library; and each post is re-observed over time to build the metric history behind every momentum score."
         style={{ width: '100%', height: 'auto' }}
       >
         {stages.slice(0, -1).map((s, i) => (
@@ -139,8 +139,8 @@ export const CorpusFlow = () => {
         </text>
       </svg>
       <figcaption style={{ fontSize: '0.8125rem', opacity: 0.6, marginTop: '0.5rem' }}>
-        Two inputs, one filter, and a corpus that keeps being re-read. The last
-        step is what makes trend detection possible at all.
+        Searches in, one check, and a library analyzed once and then re-read
+        for metrics. The last step is what makes trend detection possible at all.
       </figcaption>
     </figure>
   )
@@ -151,7 +151,7 @@ export const CorpusFlow = () => {
 /**
  * The claim this has to make: the observation gate runs BEFORE the score
  * bands, and overrides them. Two lanes make that visible in a way a table
- * cannot — the top lane never reaches the bands at all.
+ * cannot: the top lane never reaches the bands at all.
  */
 export const TrendingDecision = () => (
   <figure style={{ margin: '1.75rem 0' }}>
@@ -161,7 +161,7 @@ export const TrendingDecision = () => (
       aria-label="A video with fewer than three observations across twelve hours is capped at watchlist regardless of its score. Only a video with enough observation history reaches the score bands, which can return watchlist, trending or breakout."
       style={{ width: '100%', height: 'auto' }}
     >
-      {/* lane 1 — gated */}
+      {/* lane 1: gated */}
       <rect x="8" y="16" width="704" height="112" rx="14" fill="currentColor" fillOpacity="0.03" />
       <text x="32" y="46" fill="currentColor" fillOpacity="0.5" fontSize="12" letterSpacing="0.08em">
         UNDER 3 OBSERVATIONS, OR UNDER 12 HOURS
@@ -174,7 +174,7 @@ export const TrendingDecision = () => (
       <text x="382" y="90" fill="currentColor" fillOpacity="0.75" fontSize="15">watchlist</text>
       <text x="578" y="90" fill="currentColor" fillOpacity="0.45" fontSize="12.5">whatever it scores</text>
 
-      {/* lane 2 — scored */}
+      {/* lane 2: scored */}
       <rect x="8" y="152" width="704" height="152" rx="14" fill="#4FB3A0" fillOpacity="0.05" />
       <text x="32" y="182" fill="#4FB3A0" fontSize="12" letterSpacing="0.08em">
         3+ OBSERVATIONS ACROSS 12+ HOURS
