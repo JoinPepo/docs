@@ -55,7 +55,7 @@ Spend comes from your billing records, which are permanent. Request counts come 
 
 Create, inspect and revoke keys. Owners and admins only: a key is a standing grant of the workspace's whole data surface plus its credit balance.
 
-The **Mode** column is the one to read. Key plaintext begins `pk_live_` or `pk_test_`, and **the prefix does not tell you the mode**: a `demo` key is issued with a `pk_test_` prefix. See [Authentication](/authentication) for what each mode does.
+The **Mode** column says what a key can do: `live` or `test`, matching the plaintext prefix `pk_live_` or `pk_test_`. See [Authentication](/authentication) for what each mode does.
 
 **Last used** answers the question that matters most often: which key is the one you provisioned and never deployed. It reads `Never` until a key's first request.
 
@@ -80,7 +80,7 @@ settle  /v1/share-of-voice (reserved 362000,
 That is the prepaid model working: you are never charged the estimate, only the actual cost, and the difference comes back in the same transaction.
 
 <Note>
-Top-ups are **not self-serve during the pilot**. Email [contact@joinpepo.com](mailto:contact@joinpepo.com) and the credit will appear in this history with its reference against it.
+Top up from **Billing** with a card, for any amount. Each top-up appears in this history with its reference against it. Questions go to [contact@joinpepo.com](mailto:contact@joinpepo.com).
 </Note>
 
 ## Settings
@@ -94,6 +94,6 @@ The brand profile every API workflow reads: products, competitors, category, and
     How metering works, and what each unit costs.
   </Card>
   <Card title="Authentication" icon="key" href="/authentication">
-    Key modes, and why the prefix does not tell you which one you have.
+    Key modes, and what a test key can and cannot do.
   </Card>
 </CardGroup>
