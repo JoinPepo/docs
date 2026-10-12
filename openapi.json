@@ -9400,6 +9400,8 @@
                     "is_brand",
                     "videos",
                     "share",
+                    "views",
+                    "videos_with_views",
                     "evidence_ids"
                   ],
                   "properties": {
@@ -9418,6 +9420,14 @@
                         "null"
                       ],
                       "description": "Percent of all mentions. Null when a ranking is not supported."
+                    },
+                    "views": {
+                      "type": "number",
+                      "description": "Observed views summed over the videos naming it that carry a view count, at collection time."
+                    },
+                    "videos_with_views": {
+                      "type": "integer",
+                      "description": "How many of those videos carried a view count."
                     },
                     "evidence_ids": {
                       "type": "array",
