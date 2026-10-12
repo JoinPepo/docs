@@ -1153,7 +1153,7 @@
       "post": {
         "operationId": "creativeReport",
         "summary": "How breakout videos are made, against the creator's usual",
-        "description": "Compares the videos that broke out for their own creator (2x or more of that creator's median views in this library) with that creator's other posts, on how they are made: format, hook type, setting, whether the creator is on camera, and length. Per value: the share among breakouts, the share among usual videos, the gap in points, counts and video ids. Also counts the breakouts' opening hooks by type with example openings, and sets up to 6 creators' strongest breakout beside that creator's most typical post (closest to their median), with the traits that differ.\n\nOnly creators with 3 or more posts here have a median, and posts under 3 days old are left out because their views are still climbing. Below 8 analysed breakouts or 8 analysed usual videos, `comparison_supported` is false and no comparison, hook ranking or strongest trait is given. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. Format, setting and who is on camera are model reads written when each video was analysed; the hook type is a rule based reading of the recorded opening. Association, not cause.\n\nFree: no model is called and nothing is metered.",
+        "description": "Compares the videos that broke out for their own creator (2x or more of that creator's median views in this library) with that creator's other posts, on how they are made: format, hook type, setting, whether the creator is on camera, and length. Per value: the share among breakouts, the share among usual videos, the gap in points, counts and video ids. Also counts the breakouts' opening hooks by type with example openings, and sets up to 6 creators' strongest breakout beside that creator's most typical post (closest to their median), with the traits that differ.\n\nOnly creators with 3 or more posts here have a median, and posts under 3 days old are left out because their views are still climbing. A creator's median is over all of their posts in the library, including those before `window`; only videos in the window are compared. Below 8 analysed breakouts or 8 analysed usual videos, `comparison_supported` is false and no comparison, hook ranking or strongest trait is given. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. Format, setting and who is on camera are model reads written when each video was analysed; the hook type is a rule based reading of the recorded opening. Association, not cause.\n\nFree: no model is called and nothing is metered.",
         "tags": [
           "Library"
         ],
@@ -1172,7 +1172,7 @@
                     },
                     "minItems": 1,
                     "maxItems": 10,
-                    "description": "Compare only videos whose caption or stored analysis names one of these, whole word. Every post still counts toward its creator's median."
+                    "description": "Compare only videos collected under one of these (their collection tag), case-insensitively. With no video in the window tagged with one, the whole library is compared and `scope.mode` is `whole_library`. Every post still counts toward its creator's median."
                   },
                   "platforms": {
                     "type": "array",
@@ -10645,6 +10645,7 @@
           "evidence_cited",
           "by_platform",
           "subjects",
+          "scope",
           "window_hours",
           "platforms",
           "corpus",
@@ -10665,6 +10666,7 @@
             "required": [
               "videos_read",
               "in_scope",
+              "posts_for_medians",
               "creators_seen",
               "creators_qualified",
               "creators_in_scope",
@@ -10682,7 +10684,11 @@
               },
               "in_scope": {
                 "type": "integer",
-                "description": "Videos naming one of `subjects`; every video read when none were given."
+                "description": "Videos in the window collected under one of `subjects` (their collection tag); every video in the window when none were given or none carries one of them (see `scope`)."
+              },
+              "posts_for_medians": {
+                "type": "integer",
+                "description": "Every post read, in the window or before it, that fed a creator's median. Posts before the window are never compared."
               },
               "creators_seen": {
                 "type": "integer"
@@ -11225,6 +11231,44 @@
               "type": "string"
             }
           },
+          "scope": {
+            "type": "object",
+            "required": [
+              "subjects",
+              "mode",
+              "tagged_videos",
+              "videos_outside_subjects",
+              "videos_without_subject_tags",
+              "rule"
+            ],
+            "properties": {
+              "subjects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "subject_tags",
+                  "whole_library"
+                ]
+              },
+              "tagged_videos": {
+                "type": "integer"
+              },
+              "videos_outside_subjects": {
+                "type": "integer"
+              },
+              "videos_without_subject_tags": {
+                "type": "integer"
+              },
+              "rule": {
+                "type": "string"
+              }
+            }
+          },
           "window_hours": {
             "type": [
               "number",
@@ -11246,7 +11290,9 @@
               "posts_scanned",
               "posts_considered",
               "truncated",
-              "withheld"
+              "withheld",
+              "posts_for_medians",
+              "read_back_to"
             ],
             "properties": {
               "posts_scanned": {
@@ -11263,6 +11309,16 @@
                 "additionalProperties": {
                   "type": "integer"
                 }
+              },
+              "posts_for_medians": {
+                "type": "integer"
+              },
+              "read_back_to": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "description": "ISO date of the oldest post read when the walk stopped inside the read budget; null when it read everything."
               }
             }
           },
