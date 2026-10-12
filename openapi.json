@@ -1078,6 +1078,77 @@
         }
       }
     },
+    "/v1/consumer/report": {
+      "post": {
+        "operationId": "consumerReport",
+        "summary": "What people say about one brand, counted",
+        "description": "Counts what people post about one brand over the videos and comments this workspace already stored: videos mentioning the brand and each competitor, how the creators of analysed videos lean toward the brand, the tone of the comments under them, what commenters like and complain about (grouped only by the exact theme each comment was tagged with), claims and complaints creators make about the brand, its products named or shown, how competitors come up in the same videos, and how many carry no paid flag from the platform.\n\nA video mentions a name when its caption or stored analysis names it, case-insensitively and as a whole word. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. Stance, claims and comment tone are model reads written when each row was analysed. This is public posting, not a survey: counts are videos or comments, never people. Below 20 mention videos, `mentions.ranking_supported` is false and no share is given.\n\nFree: no model is called and nothing is metered.",
+        "tags": [
+          "Library"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "brand": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "description": "Omit for this workspace's own brand."
+                  },
+                  "competitors": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "maxItems": 10,
+                    "description": "Omit to use the brand profile's competitors."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  },
+                  "window": {
+                    "type": "string",
+                    "description": "e.g. \"30d\". Omit for all time."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The counts, with what could not be computed and why.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsumerReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/products/insights": {
       "post": {
         "operationId": "productInsights",
@@ -9217,6 +9288,903 @@
           },
           "usage": {
             "$ref": "#/components/schemas/Usage"
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "ConsumerReportResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "brand",
+          "by_platform",
+          "competitors",
+          "competitors_source",
+          "mentions",
+          "video_sentiment",
+          "comment_tone",
+          "likes",
+          "complaints",
+          "creator_claims",
+          "creator_complaints",
+          "comments_with_themes",
+          "products",
+          "competitors_in_brand_videos",
+          "unsponsored",
+          "evidence",
+          "evidence_listed",
+          "evidence_cited",
+          "window_hours",
+          "platforms",
+          "corpus",
+          "not_a_survey",
+          "quality",
+          "notes",
+          "request_id"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "One sentence composed from the counts below."
+          },
+          "brand": {
+            "type": "object",
+            "required": [
+              "name",
+              "names_matched"
+            ],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "names_matched": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "by_platform": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform",
+                "videos"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                }
+              }
+            },
+            "description": "Videos mentioning the brand, per platform."
+          },
+          "competitors": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "competitors_source": {
+            "type": "string",
+            "enum": [
+              "request",
+              "brand_profile",
+              "none"
+            ]
+          },
+          "mentions": {
+            "type": "object",
+            "required": [
+              "rows",
+              "videos",
+              "ranking_supported",
+              "ranking_withheld_because",
+              "brand_matched_in",
+              "rule"
+            ],
+            "properties": {
+              "rows": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "name",
+                    "is_brand",
+                    "videos",
+                    "share",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "name": {
+                      "type": "string"
+                    },
+                    "is_brand": {
+                      "type": "boolean"
+                    },
+                    "videos": {
+                      "type": "integer"
+                    },
+                    "share": {
+                      "type": [
+                        "number",
+                        "null"
+                      ],
+                      "description": "Percent of all mentions. Null when a ranking is not supported."
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                    }
+                  }
+                }
+              },
+              "videos": {
+                "type": "integer",
+                "description": "Distinct videos naming the brand or any competitor."
+              },
+              "ranking_supported": {
+                "type": "boolean"
+              },
+              "ranking_withheld_because": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "brand_matched_in": {
+                "type": "object",
+                "properties": {
+                  "caption_only": {
+                    "type": "integer"
+                  },
+                  "analysis_only": {
+                    "type": "integer"
+                  },
+                  "both": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "rule": {
+                "type": "string"
+              }
+            }
+          },
+          "video_sentiment": {
+            "type": "object",
+            "required": [
+              "analysed",
+              "total",
+              "positive_share",
+              "basis",
+              "counts",
+              "rule"
+            ],
+            "properties": {
+              "analysed": {
+                "type": "integer"
+              },
+              "total": {
+                "type": "integer"
+              },
+              "positive_share": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent of analysed brand videos leaning positive. Null below 5 analysed videos."
+              },
+              "basis": {
+                "type": "object",
+                "properties": {
+                  "entity_stance": {
+                    "type": "integer"
+                  },
+                  "main_product": {
+                    "type": "integer"
+                  },
+                  "no_brand_stance": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "counts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "label",
+                    "videos",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "enum": [
+                        "positive",
+                        "negative",
+                        "mixed",
+                        "neutral",
+                        "not_determinable"
+                      ]
+                    },
+                    "videos": {
+                      "type": "integer"
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                    }
+                  }
+                }
+              },
+              "rule": {
+                "type": "string"
+              }
+            }
+          },
+          "comment_tone": {
+            "type": "object",
+            "required": [
+              "comments_read",
+              "videos_with_comments",
+              "toned",
+              "sources",
+              "counts",
+              "rule"
+            ],
+            "properties": {
+              "comments_read": {
+                "type": "integer"
+              },
+              "videos_with_comments": {
+                "type": "integer"
+              },
+              "toned": {
+                "type": "integer"
+              },
+              "sources": {
+                "type": "object",
+                "properties": {
+                  "derived": {
+                    "type": "integer"
+                  },
+                  "comment_read": {
+                    "type": "integer"
+                  },
+                  "none": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "counts": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "label",
+                    "comments",
+                    "evidence_ids"
+                  ],
+                  "properties": {
+                    "label": {
+                      "type": "string",
+                      "enum": [
+                        "positive",
+                        "negative",
+                        "neutral",
+                        "mixed",
+                        "unknown"
+                      ]
+                    },
+                    "comments": {
+                      "type": "integer"
+                    },
+                    "evidence_ids": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                    }
+                  }
+                }
+              },
+              "rule": {
+                "type": "string"
+              }
+            }
+          },
+          "likes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "count",
+                "unit",
+                "quotes",
+                "evidence_ids"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "The exact theme or claim, grouped only by identical normalised text."
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "videos",
+                    "comments"
+                  ]
+                },
+                "quotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean",
+                        "description": "True for a comment's own words; false for a model's paraphrase (claims, stance evidence)."
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string",
+                        "description": "The video it was said on or under."
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            },
+            "description": "Themes of positive comments under brand videos."
+          },
+          "complaints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "count",
+                "unit",
+                "quotes",
+                "evidence_ids"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "The exact theme or claim, grouped only by identical normalised text."
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "videos",
+                    "comments"
+                  ]
+                },
+                "quotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean",
+                        "description": "True for a comment's own words; false for a model's paraphrase (claims, stance evidence)."
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string",
+                        "description": "The video it was said on or under."
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            },
+            "description": "Themes of negative comments under brand videos."
+          },
+          "creator_claims": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "count",
+                "unit",
+                "quotes",
+                "evidence_ids"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "The exact theme or claim, grouped only by identical normalised text."
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "videos",
+                    "comments"
+                  ]
+                },
+                "quotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean",
+                        "description": "True for a comment's own words; false for a model's paraphrase (claims, stance evidence)."
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string",
+                        "description": "The video it was said on or under."
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            },
+            "description": "Claims the analysis recorded creators making about the brand. Paraphrases."
+          },
+          "creator_complaints": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "label",
+                "count",
+                "unit",
+                "quotes",
+                "evidence_ids"
+              ],
+              "properties": {
+                "label": {
+                  "type": "string",
+                  "description": "The exact theme or claim, grouped only by identical normalised text."
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "unit": {
+                  "type": "string",
+                  "enum": [
+                    "videos",
+                    "comments"
+                  ]
+                },
+                "quotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean",
+                        "description": "True for a comment's own words; false for a model's paraphrase (claims, stance evidence)."
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string",
+                        "description": "The video it was said on or under."
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            },
+            "description": "Complaints the analysis recorded creators making about the brand. Paraphrases."
+          },
+          "comments_with_themes": {
+            "type": "integer"
+          },
+          "products": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "videos",
+                "evidence_ids"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            }
+          },
+          "competitors_in_brand_videos": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "name",
+                "videos",
+                "stances",
+                "quotes",
+                "evidence_ids"
+              ],
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                },
+                "stances": {
+                  "type": "object"
+                },
+                "quotes": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean",
+                        "description": "True for a comment's own words; false for a model's paraphrase (claims, stance evidence)."
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string",
+                        "description": "The video it was said on or under."
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+                }
+              }
+            }
+          },
+          "unsponsored": {
+            "type": "object",
+            "required": [
+              "videos",
+              "flagged_paid",
+              "no_paid_fields",
+              "evidence_ids",
+              "note"
+            ],
+            "properties": {
+              "videos": {
+                "type": "integer"
+              },
+              "flagged_paid": {
+                "type": "integer"
+              },
+              "no_paid_fields": {
+                "type": "integer",
+                "description": "Of the unflagged, videos whose row carried none of the platform's paid fields at all."
+              },
+              "evidence_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Ids of the listed videos this row counts. Only videos in `evidence` are listed; the count includes the rest."
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url",
+                "platform",
+                "handle",
+                "thumb",
+                "caption",
+                "views",
+                "likes",
+                "comments",
+                "posted_at",
+                "mentions_brand",
+                "sentiment",
+                "summary"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "thumb": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "caption": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "likes": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "comments": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "posted_at": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "mentions_brand": {
+                  "type": "boolean"
+                },
+                "sentiment": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "Stance toward the brand, when analysed."
+                },
+                "summary": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "evidence_listed": {
+            "type": "integer"
+          },
+          "evidence_cited": {
+            "type": "integer"
+          },
+          "window_hours": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "platforms": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "corpus": {
+            "type": "object",
+            "required": [
+              "posts_scanned",
+              "posts_considered",
+              "truncated",
+              "withheld",
+              "comments_withheld"
+            ],
+            "properties": {
+              "posts_scanned": {
+                "type": "integer"
+              },
+              "posts_considered": {
+                "type": "integer"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "withheld": {
+                "type": "object"
+              },
+              "comments_withheld": {
+                "type": "object"
+              }
+            }
+          },
+          "not_a_survey": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "object",
+            "required": [
+              "rows",
+              "gaps",
+              "limitations",
+              "composition"
+            ],
+            "properties": {
+              "rows": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "composition": {
+                "type": "object"
+              },
+              "coverage": {
+                "type": "object"
+              }
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           },
           "request_id": {
             "type": "string"
