@@ -1149,6 +1149,73 @@
         }
       }
     },
+    "/v1/creative/report": {
+      "post": {
+        "operationId": "creativeReport",
+        "summary": "How breakout videos are made, against the creator's usual",
+        "description": "Compares the videos that broke out for their own creator (2x or more of that creator's median views in this library) with that creator's other posts, on how they are made: format, hook type, setting, whether the creator is on camera, and length. Per value: the share among breakouts, the share among usual videos, the gap in points, counts and video ids. Also counts the breakouts' opening hooks by type with example openings, and sets up to 6 creators' strongest breakout beside that creator's most typical post (closest to their median), with the traits that differ.\n\nOnly creators with 3 or more posts here have a median, and posts under 3 days old are left out because their views are still climbing. Below 8 analysed breakouts or 8 analysed usual videos, `comparison_supported` is false and no comparison, hook ranking or strongest trait is given. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. Format, setting and who is on camera are model reads written when each video was analysed; the hook type is a rule based reading of the recorded opening. Association, not cause.\n\nFree: no model is called and nothing is metered.",
+        "tags": [
+          "Library"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "minItems": 1,
+                    "maxItems": 10,
+                    "description": "Compare only videos whose caption or stored analysis names one of these, whole word. Every post still counts toward its creator's median."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  },
+                  "window": {
+                    "type": "string",
+                    "description": "e.g. \"30d\". Omit for all time."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The comparison, with what could not be computed and why.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreativeReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
     "/v1/products/insights": {
       "post": {
         "operationId": "productInsights",
@@ -1233,7 +1300,7 @@
       "post": {
         "operationId": "discoverCreators",
         "summary": "Find creators for a product, topic or audience",
-        "description": "Creators in this brand's library with median views, median engagement, best post, consistency, the competitors they also post about, and brand-safety flags.\n\n**Medians, not averages.** One 486K video against nine 3K videos averages to 51K, which describes none of the ten and flatters the creator enormously. `bestViews` is reported alongside so a one-hit creator is visible as one.\n\n**A creator with one post is not ranked.** One post has no median and no dispersion; those creators come back in `single_post_creators`, present and countable but never comparable with the ranked list.\n\n**Post count is a fact about our search.** Creators are here because their posts matched what was collected, so `postsInCorpus` is never their output.\n\n**A brand-safety flag is a hit, never a clearance.** Screening is keyword-based over captions only: it cannot see video content, audio, or posts outside this library. Zero flags means nothing matched, not that a creator is safe, and `safety_statement` must travel with any safety claim.\n\nFollower counts, demographics and audience overlap are not collected, so nothing here says whether a creator's audience is yours. Observed views are not reach.\n\nCosts credits: one `search_request` plus one `content_enriched` per stored post read. Price it first with `POST /v1/estimate`.",
+        "description": "Creators in this brand's library with median views, median engagement, best post, consistency, the competitors they also post about, and brand-safety flags.\n\n**Medians, not averages.** One 486K video against nine 3K videos averages to 51K, which describes none of the ten and flatters the creator enormously. `bestViews` is reported alongside so a one-hit creator is visible as one.\n\n**A creator with one post is not ranked.** One post has no median and no dispersion; those creators come back in `single_post_creators`, present and countable but never comparable with the ranked list.\n\n**Post count is a fact about our search.** Creators are here because their posts matched what was collected, so `postsInCorpus` is never their output.\n\n**A brand-safety flag is a hit, never a clearance.** Screening is keyword-based over captions only: it cannot see video content, audio, or posts outside this library. Zero flags means nothing matched, not that a creator is safe, and `safety_statement` must travel with any safety claim.\n\n**Followers where stored, never guessed.** A creator's follower count comes from this workspace's creators table first, then the latest count stored on one of their own posts, and `followersSource` says which. Most collectors store none, so `followers` is often null, which means unknown, never zero. With `followers_min` or `followers_max` set, a creator with no stored count is left out of the shortlist and counted in `audience.withheld_unknown_followers`. With `regions` set, a creator whose stored region is elsewhere is left out; one with no stored region is kept, marked `region: null`, and counted in `audience.region_unknown_kept`. Demographics and audience overlap are not collected, so nothing here says whether a creator's audience is yours. Observed views are not reach.\n\nCosts credits: one `search_request` plus one `content_enriched` per stored post read. Price it first with `POST /v1/estimate`.",
         "tags": [
           "Library"
         ],
@@ -1267,6 +1334,26 @@
                     "type": "integer",
                     "minimum": 1,
                     "maximum": 100
+                  },
+                  "followers_min": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Only creators with at least this many followers. A creator with no stored follower count is never inside the range: it is left out and counted in `audience.withheld_unknown_followers`."
+                  },
+                  "followers_max": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "description": "Only creators with at most this many followers, e.g. 100000 for micro creators. Must be at least `followers_min`."
+                  },
+                  "regions": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 30,
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[A-Za-z]{2}$"
+                    },
+                    "description": "ISO 3166 alpha 2 codes a creator posts from, e.g. [\"US\", \"GB\"]. A stored region elsewhere is left out; no stored region is kept and counted in `audience.region_unknown_kept`."
                   },
                   "max_cost_usd": {
                     "type": "number",
@@ -3606,6 +3693,76 @@
           },
           "429": {
             "$ref": "#/components/responses/RateLimited"
+          }
+        }
+      }
+    },
+    "/v1/trends/report": {
+      "post": {
+        "operationId": "trendReport",
+        "summary": "Which traits are rising in the stored videos",
+        "description": "Compares the videos posted in the recent days (default 7) with the whole window (default 30 days) and says which traits are rising: on-screen format, content type, setting, who is on screen, whether the creator is on camera, hook pattern, theme, and caption hashtags. For each trait: its share of videos in the recent period, the prior period and the window, the change in percentage points, video counts, median views and engagement, and the videos behind it. Also a trailing daily share for the top risers, the biggest traits this week by count, and trend cards with example videos.\n\nEvery trait except hashtags was written by a model when each video was analysed, and each kind is counted only over the videos whose analysis recorded that field; `coverage` says how many. A trait is called rising only with at least 5 videos in the recent period, a change of at least 2 points, and 20 videos recording the field in each period; under those floors it is listed in `below_floor` or the comparison is withheld with a reason. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. With `subjects`, only videos collected under one of them are read, when any are; otherwise the whole library is read and `scope.mode` says so.\n\nUnlike `POST /v1/trending`, this needs no repeated metric snapshots: posting dates are known when a video is collected, so it answers on a freshly collected library. Free: no model is called and nothing is metered.",
+        "tags": [
+          "Library"
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "subjects": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "maxLength": 120
+                    },
+                    "maxItems": 10,
+                    "description": "Category terms. Videos collected under one of them are read, when any are."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "maxItems": 10
+                  },
+                  "recent": {
+                    "type": "string",
+                    "description": "The recent period in whole days, shorter than window. Default \"7d\"."
+                  },
+                  "window": {
+                    "type": "string",
+                    "description": "The whole window in whole days, \"2d\" to \"90d\". Default \"30d\"."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The traits, with what could not be computed and why.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrendReportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
           }
         }
       }
@@ -6618,7 +6775,17 @@
           "skus",
           "platforms",
           "examples",
-          "evidence"
+          "evidence",
+          "typicalViews",
+          "postsWithViews",
+          "engagementRate",
+          "breakouts",
+          "bestVideo",
+          "followers",
+          "followersSource",
+          "viewsPerFollower",
+          "region",
+          "regionSource"
         ],
         "properties": {
           "handle": {
@@ -6700,6 +6867,102 @@
                 }
               }
             }
+          },
+          "typicalViews": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Median views over the posts that carry a view count, and only those. Null when none does (Instagram search never returns views). `medianViews` counts a post with no view count as zero and is kept for compatibility."
+          },
+          "postsWithViews": {
+            "type": "integer",
+            "description": "Posts with a view count: the base of `typicalViews` and `breakouts`."
+          },
+          "engagementRate": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Median of (likes + comments + shares) / views over posts carrying views and an engagement count. Null rather than zero when none does."
+          },
+          "breakouts": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Posts at 2x or more of this creator's own typical views here. Measured against their own posts in this corpus, not their whole account."
+          },
+          "bestVideo": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "Their most viewed post here.",
+            "required": [
+              "views"
+            ],
+            "properties": {
+              "url": {
+                "type": "string"
+              },
+              "caption": {
+                "type": "string"
+              },
+              "views": {
+                "type": "integer"
+              },
+              "thumbUrl": {
+                "type": "string"
+              }
+            }
+          },
+          "followers": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Stored follower count, as of when it was collected. Null is unknown, never zero."
+          },
+          "followersSource": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "creators_table",
+              "post",
+              null
+            ],
+            "description": "`creators_table` when this workspace's creators table holds a count; `post` when only the latest count stored on one of their own posts does."
+          },
+          "viewsPerFollower": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "`typicalViews` / `followers`. Null when either is unknown."
+          },
+          "region": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ISO 3166 alpha 2, as a collector stored it. Null is unknown."
+          },
+          "regionSource": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "creators_table",
+              "post",
+              null
+            ]
+          },
+          "avatarUrl": {
+            "type": "string"
           }
         }
       },
@@ -6715,14 +6978,17 @@
           "posts_considered",
           "excluded_by_judge",
           "excluded_official",
+          "excluded_own",
           "creators",
           "single_post_creators",
           "flagged_creators",
           "safety_statement",
+          "audience",
           "notes",
           "unavailable",
           "disclaimer",
-          "usage"
+          "usage",
+          "quality"
         ],
         "properties": {
           "summary": {
@@ -6771,6 +7037,10 @@
             "type": "integer",
             "description": "Posts withheld because the author is a declared official account (`official_accounts` on the brand profile); a brand's own account is never a creator candidate, and a competitor's own channel is a different surface's job, not earned-PR discovery."
           },
+          "excluded_own": {
+            "type": "integer",
+            "description": "Posts withheld because they are the brand's own (`brandOwn`). A brand's own posts are never signal, and the brand is never a creator to send product to."
+          },
           "creators": {
             "type": "array",
             "items": {
@@ -6798,6 +7068,19 @@
                 "analysis": {
                   "$ref": "#/components/schemas/VideoAnalysis",
                   "description": "This post's own stored per-video read, when one is stored."
+                },
+                "followers": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "description": "Stored follower count; null is unknown. Absent when no audience join ran."
+                },
+                "region": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
                 }
               }
             },
@@ -6809,6 +7092,112 @@
           "safety_statement": {
             "type": "string",
             "description": "Repeat this whenever you mention brand safety. A flag is a hit; zero flags is NOT a clearance: screening is keyword-based over captions only and cannot see video content or posts outside this corpus."
+          },
+          "audience": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "What the follower range and regions did, counted over every creator considered (ranked and single post). A null count means that filter was not asked for, which is a different fact from zero. Null when the request stopped before any creator (an unknown `sku`).",
+            "required": [
+              "followers_range",
+              "regions",
+              "creators_considered",
+              "followers_known",
+              "followers_from_creators_table",
+              "followers_from_posts",
+              "followers_unknown",
+              "region_known",
+              "in_range",
+              "out_of_range",
+              "withheld_unknown_followers",
+              "out_of_region",
+              "region_unknown_kept"
+            ],
+            "properties": {
+              "followers_range": {
+                "type": [
+                  "object",
+                  "null"
+                ],
+                "properties": {
+                  "min": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "max": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              "regions": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "items": {
+                  "type": "string"
+                }
+              },
+              "creators_considered": {
+                "type": "integer"
+              },
+              "followers_known": {
+                "type": "integer"
+              },
+              "followers_from_creators_table": {
+                "type": "integer"
+              },
+              "followers_from_posts": {
+                "type": "integer"
+              },
+              "followers_unknown": {
+                "type": "integer"
+              },
+              "region_known": {
+                "type": "integer"
+              },
+              "in_range": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Known follower count inside the range."
+              },
+              "out_of_range": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Known follower count outside the range: left out."
+              },
+              "withheld_unknown_followers": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "No stored follower count: left out of the shortlist, counted here rather than dropped silently."
+              },
+              "out_of_region": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "Stored region outside `regions`: left out."
+              },
+              "region_unknown_kept": {
+                "type": [
+                  "integer",
+                  "null"
+                ],
+                "description": "No stored region: kept and marked unknown, because most collectors store none."
+              }
+            }
           },
           "notes": {
             "type": "array",
@@ -6831,6 +7220,39 @@
                 "because": {
                   "type": "string"
                 }
+              }
+            }
+          },
+          "quality": {
+            "type": "object",
+            "description": "Which creators lack which fields and what that costs: follower counts, regions and view counts.",
+            "required": [
+              "rows",
+              "gaps",
+              "limitations",
+              "composition"
+            ],
+            "properties": {
+              "rows": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "composition": {
+                "type": "object"
+              },
+              "coverage": {
+                "type": "object"
               }
             }
           },
@@ -10198,6 +10620,1557 @@
           },
           "request_id": {
             "type": "string"
+          }
+        }
+      },
+      "CreativeReportResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "rule",
+          "coverage",
+          "floors",
+          "comparison_supported",
+          "withheld_because",
+          "axes",
+          "strongest",
+          "hooks",
+          "hooks_recorded",
+          "hooks_unclassified",
+          "hook_types_below_floor",
+          "pairs",
+          "pairs_skipped",
+          "evidence",
+          "evidence_listed",
+          "evidence_cited",
+          "by_platform",
+          "subjects",
+          "window_hours",
+          "platforms",
+          "corpus",
+          "cost",
+          "quality",
+          "notes",
+          "request_id"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "videos_read",
+              "in_scope",
+              "creators_seen",
+              "creators_qualified",
+              "creators_in_scope",
+              "comparable_videos",
+              "breakouts",
+              "usual",
+              "breakouts_analysed",
+              "usual_analysed",
+              "analysed_share",
+              "left_out"
+            ],
+            "properties": {
+              "videos_read": {
+                "type": "integer"
+              },
+              "in_scope": {
+                "type": "integer",
+                "description": "Videos naming one of `subjects`; every video read when none were given."
+              },
+              "creators_seen": {
+                "type": "integer"
+              },
+              "creators_qualified": {
+                "type": "integer",
+                "description": "Creators with enough comparable posts to have a median."
+              },
+              "creators_in_scope": {
+                "type": "integer"
+              },
+              "comparable_videos": {
+                "type": "integer"
+              },
+              "breakouts": {
+                "type": "integer"
+              },
+              "usual": {
+                "type": "integer"
+              },
+              "breakouts_analysed": {
+                "type": "integer"
+              },
+              "usual_analysed": {
+                "type": "integer"
+              },
+              "analysed_share": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Percent of comparable videos with an on-screen record."
+              },
+              "left_out": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "floors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "number"
+            }
+          },
+          "comparison_supported": {
+            "type": "boolean"
+          },
+          "withheld_because": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "axes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "axis",
+                "label",
+                "breakouts_known",
+                "usual_known",
+                "values"
+              ],
+              "properties": {
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "hook_type",
+                    "setting",
+                    "creator_on_camera",
+                    "length"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "breakouts_known": {
+                  "type": "integer"
+                },
+                "usual_known": {
+                  "type": "integer"
+                },
+                "values": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "value",
+                      "breakouts",
+                      "breakout_share",
+                      "usual",
+                      "usual_share",
+                      "gap_points",
+                      "breakout_ids",
+                      "usual_ids"
+                    ],
+                    "properties": {
+                      "value": {
+                        "type": "string"
+                      },
+                      "breakouts": {
+                        "type": "integer"
+                      },
+                      "breakout_share": {
+                        "type": "number"
+                      },
+                      "usual": {
+                        "type": "integer"
+                      },
+                      "usual_share": {
+                        "type": "number"
+                      },
+                      "gap_points": {
+                        "type": "number",
+                        "description": "Percentage points; positive means more common among breakouts."
+                      },
+                      "breakout_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      },
+                      "usual_ids": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "strongest": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "required": [
+              "axis",
+              "value",
+              "gap_points"
+            ],
+            "properties": {
+              "axis": {
+                "type": "string"
+              },
+              "value": {
+                "type": "string"
+              },
+              "gap_points": {
+                "type": "number"
+              }
+            }
+          },
+          "hooks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "count",
+                "examples",
+                "evidence_ids"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                },
+                "examples": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "text",
+                      "verbatim",
+                      "author",
+                      "evidence_id"
+                    ],
+                    "properties": {
+                      "text": {
+                        "type": "string"
+                      },
+                      "verbatim": {
+                        "type": "boolean"
+                      },
+                      "author": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      },
+                      "evidence_id": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                },
+                "evidence_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "hooks_recorded": {
+            "type": "integer"
+          },
+          "hooks_unclassified": {
+            "type": "integer"
+          },
+          "hook_types_below_floor": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "type",
+                "count"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string"
+                },
+                "count": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "pairs": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "creator",
+                "handle",
+                "platform",
+                "creator_posts",
+                "creator_median_views",
+                "breakout",
+                "typical",
+                "differs"
+              ],
+              "properties": {
+                "creator": {
+                  "type": "string"
+                },
+                "handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "creator_posts": {
+                  "type": "integer"
+                },
+                "creator_median_views": {
+                  "type": "number"
+                },
+                "breakout": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "url",
+                    "views",
+                    "times_creator_median",
+                    "posted_at",
+                    "hook",
+                    "traits"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "views": {
+                      "type": "number"
+                    },
+                    "times_creator_median": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "posted_at": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "hook": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The analysis's record of the opening, not a quotation."
+                    },
+                    "traits": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "typical": {
+                  "type": "object",
+                  "required": [
+                    "id",
+                    "url",
+                    "views",
+                    "times_creator_median",
+                    "posted_at",
+                    "hook",
+                    "traits"
+                  ],
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "url": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "views": {
+                      "type": "number"
+                    },
+                    "times_creator_median": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "posted_at": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "hook": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "description": "The analysis's record of the opening, not a quotation."
+                    },
+                    "traits": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": [
+                          "string",
+                          "null"
+                        ]
+                      }
+                    }
+                  }
+                },
+                "differs": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "axis",
+                      "label",
+                      "breakout",
+                      "typical"
+                    ],
+                    "properties": {
+                      "axis": {
+                        "type": "string"
+                      },
+                      "label": {
+                        "type": "string"
+                      },
+                      "breakout": {
+                        "type": "string"
+                      },
+                      "typical": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "pairs_skipped": {
+            "type": "integer"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url",
+                "platform",
+                "handle",
+                "thumb",
+                "caption",
+                "views",
+                "posted_at",
+                "breakout",
+                "times_creator_median",
+                "creator_median_views",
+                "format",
+                "hook",
+                "summary"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "thumb": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "caption": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "posted_at": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "breakout": {
+                  "type": "boolean"
+                },
+                "times_creator_median": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "creator_median_views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "format": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "hook": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "summary": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "evidence_listed": {
+            "type": "integer"
+          },
+          "evidence_cited": {
+            "type": "integer"
+          },
+          "by_platform": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform",
+                "videos"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "subjects": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "window_hours": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "platforms": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "corpus": {
+            "type": "object",
+            "required": [
+              "posts_scanned",
+              "posts_considered",
+              "truncated",
+              "withheld"
+            ],
+            "properties": {
+              "posts_scanned": {
+                "type": "integer"
+              },
+              "posts_considered": {
+                "type": "integer"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "withheld": {
+                "type": "object",
+                "additionalProperties": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "cost": {
+            "type": "object",
+            "required": [
+              "usd",
+              "note"
+            ],
+            "properties": {
+              "usd": {
+                "type": "number"
+              },
+              "note": {
+                "type": "string"
+              }
+            }
+          },
+          "quality": {
+            "type": "object",
+            "required": [
+              "rows",
+              "gaps",
+              "limitations",
+              "composition"
+            ],
+            "properties": {
+              "rows": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "composition": {
+                "type": "object"
+              },
+              "coverage": {
+                "type": "object"
+              }
+            }
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TrendReportResponse": {
+        "type": "object",
+        "required": [
+          "summary",
+          "periods",
+          "by_platform",
+          "analysed",
+          "coverage",
+          "medians",
+          "floors",
+          "rising",
+          "rising_withheld_because",
+          "falling",
+          "biggest_this_week",
+          "biggest_withheld_because",
+          "traits",
+          "daily_share",
+          "cards",
+          "below_floor",
+          "rule",
+          "evidence",
+          "evidence_listed",
+          "evidence_cited",
+          "scope",
+          "window_hours",
+          "recent_hours",
+          "platforms",
+          "corpus",
+          "quality",
+          "request_id"
+        ],
+        "properties": {
+          "summary": {
+            "type": "string",
+            "description": "One sentence composed from the counts below."
+          },
+          "periods": {
+            "type": "object",
+            "required": [
+              "recent",
+              "prior",
+              "window"
+            ],
+            "description": "By posting date. `window` includes `recent`; `prior` is the window before `recent`.",
+            "properties": {
+              "recent": {
+                "type": "object",
+                "required": [
+                  "days",
+                  "start",
+                  "videos"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "integer",
+                    "description": "Epoch milliseconds."
+                  },
+                  "videos": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "prior": {
+                "type": "object",
+                "required": [
+                  "days",
+                  "start",
+                  "videos"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "integer",
+                    "description": "Epoch milliseconds."
+                  },
+                  "videos": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "window": {
+                "type": "object",
+                "required": [
+                  "days",
+                  "start",
+                  "videos"
+                ],
+                "properties": {
+                  "days": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "integer",
+                    "description": "Epoch milliseconds."
+                  },
+                  "videos": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          },
+          "by_platform": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform",
+                "videos"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "analysed": {
+            "type": "object",
+            "required": [
+              "recent",
+              "prior",
+              "window"
+            ],
+            "properties": {
+              "recent": {
+                "type": "integer"
+              },
+              "prior": {
+                "type": "integer"
+              },
+              "window": {
+                "type": "integer"
+              }
+            },
+            "description": "Videos with a stored analysis, per period."
+          },
+          "coverage": {
+            "type": "array",
+            "description": "Per trait kind, how many videos recorded the field in each period. Shares are over these, never over every video.",
+            "items": {
+              "type": "object",
+              "required": [
+                "kind",
+                "label",
+                "recorded_recent",
+                "recorded_prior",
+                "recorded_window",
+                "comparable"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "content_type",
+                    "setting",
+                    "people",
+                    "creator_on_camera",
+                    "hook",
+                    "theme",
+                    "hashtag"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "recorded_recent": {
+                  "type": "integer"
+                },
+                "recorded_prior": {
+                  "type": "integer"
+                },
+                "recorded_window": {
+                  "type": "integer"
+                },
+                "comparable": {
+                  "type": "boolean"
+                }
+              }
+            }
+          },
+          "medians": {
+            "type": "object",
+            "required": [
+              "views_window",
+              "views_recent",
+              "engagement_pct_window"
+            ],
+            "properties": {
+              "views_window": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "views_recent": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "engagement_pct_window": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              }
+            }
+          },
+          "floors": {
+            "type": "object",
+            "required": [
+              "min_trait_videos",
+              "min_period_videos",
+              "min_change_points",
+              "min_rolling_base"
+            ],
+            "properties": {
+              "min_trait_videos": {
+                "type": "integer"
+              },
+              "min_period_videos": {
+                "type": "integer"
+              },
+              "min_change_points": {
+                "type": "number"
+              },
+              "min_rolling_base": {
+                "type": "integer"
+              }
+            }
+          },
+          "rising": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendTrait"
+            },
+            "description": "Rising and new traits, strongest change first, at most 8. Empty when `rising_withheld_because` is set."
+          },
+          "rising_withheld_because": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "falling": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendTrait"
+            }
+          },
+          "biggest_this_week": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendTrait"
+            },
+            "description": "Traits by video count in the recent period, over the floor only."
+          },
+          "biggest_withheld_because": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "traits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrendTrait"
+            },
+            "description": "Every trait that reached the floor in either period, by change, at most 60."
+          },
+          "daily_share": {
+            "type": "object",
+            "required": [
+              "rolling_days",
+              "series",
+              "rule"
+            ],
+            "properties": {
+              "rolling_days": {
+                "type": "integer"
+              },
+              "rule": {
+                "type": "string"
+              },
+              "series": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "label",
+                    "kind",
+                    "points"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "format",
+                        "content_type",
+                        "setting",
+                        "people",
+                        "creator_on_camera",
+                        "hook",
+                        "theme",
+                        "hashtag"
+                      ]
+                    },
+                    "points": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "day",
+                          "share",
+                          "videos",
+                          "of"
+                        ],
+                        "properties": {
+                          "day": {
+                            "type": "string",
+                            "description": "YYYY-MM-DD, UTC."
+                          },
+                          "share": {
+                            "type": "number"
+                          },
+                          "videos": {
+                            "type": "integer"
+                          },
+                          "of": {
+                            "type": "integer"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "cards": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "key",
+                "label",
+                "kind",
+                "status",
+                "share_recent",
+                "share_window",
+                "change_points",
+                "videos_recent",
+                "videos_window",
+                "median_views",
+                "window_median_views",
+                "example_ids",
+                "formats"
+              ],
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "content_type",
+                    "setting",
+                    "people",
+                    "creator_on_camera",
+                    "hook",
+                    "theme",
+                    "hashtag"
+                  ]
+                },
+                "status": {
+                  "type": "string",
+                  "enum": [
+                    "rising",
+                    "new",
+                    "falling",
+                    "steady",
+                    "below_floor",
+                    "not_comparable"
+                  ],
+                  "description": "`new`: rising with no video in the prior period. `not_comparable`: too few videos recorded the field in one period to compare."
+                },
+                "share_recent": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "share_window": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "change_points": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "videos_recent": {
+                  "type": "integer"
+                },
+                "videos_window": {
+                  "type": "integer"
+                },
+                "median_views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "window_median_views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "example_ids": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Up to 4 of the trait's recent videos, most viewed first."
+                },
+                "formats": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "label",
+                      "videos"
+                    ],
+                    "properties": {
+                      "label": {
+                        "type": "string"
+                      },
+                      "videos": {
+                        "type": "integer"
+                      }
+                    }
+                  },
+                  "description": "On-screen formats of the trait's recent videos. Empty for a format trait."
+                }
+              }
+            }
+          },
+          "below_floor": {
+            "type": "object",
+            "required": [
+              "floor",
+              "items"
+            ],
+            "description": "Traits seen in the recent period but under the floor: counted, never ranked.",
+            "properties": {
+              "floor": {
+                "type": "integer"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "key",
+                    "label",
+                    "kind",
+                    "videos_recent"
+                  ],
+                  "properties": {
+                    "key": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "format",
+                        "content_type",
+                        "setting",
+                        "people",
+                        "creator_on_camera",
+                        "hook",
+                        "theme",
+                        "hashtag"
+                      ]
+                    },
+                    "videos_recent": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "rule": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "url",
+                "platform",
+                "handle",
+                "thumb",
+                "caption",
+                "views",
+                "likes",
+                "comments",
+                "posted_at",
+                "in_recent",
+                "summary"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "platform": {
+                  "type": "string"
+                },
+                "handle": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "thumb": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "caption": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "views": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "likes": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "comments": {
+                  "type": [
+                    "number",
+                    "null"
+                  ]
+                },
+                "posted_at": {
+                  "type": "integer"
+                },
+                "in_recent": {
+                  "type": "boolean"
+                },
+                "summary": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "evidence_listed": {
+            "type": "integer"
+          },
+          "evidence_cited": {
+            "type": "integer"
+          },
+          "scope": {
+            "type": "object",
+            "required": [
+              "subjects",
+              "mode",
+              "tagged_videos",
+              "videos_outside_subjects",
+              "videos_without_subject_tags",
+              "rule"
+            ],
+            "properties": {
+              "subjects": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "subject_tags",
+                  "whole_library"
+                ]
+              },
+              "tagged_videos": {
+                "type": "integer"
+              },
+              "videos_outside_subjects": {
+                "type": "integer"
+              },
+              "videos_without_subject_tags": {
+                "type": "integer"
+              },
+              "rule": {
+                "type": "string"
+              }
+            }
+          },
+          "window_hours": {
+            "type": "integer"
+          },
+          "recent_hours": {
+            "type": "integer"
+          },
+          "platforms": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "corpus": {
+            "type": "object",
+            "required": [
+              "posts_scanned",
+              "posts_considered",
+              "posts_recent",
+              "posts_prior",
+              "truncated",
+              "withheld"
+            ],
+            "properties": {
+              "posts_scanned": {
+                "type": "integer"
+              },
+              "posts_considered": {
+                "type": "integer"
+              },
+              "posts_recent": {
+                "type": "integer"
+              },
+              "posts_prior": {
+                "type": "integer"
+              },
+              "truncated": {
+                "type": "boolean"
+              },
+              "withheld": {
+                "type": "object",
+                "description": "Rows never counted: own_posts, official_accounts, off_subject (judge-dropped), excluded_topics, other_platforms, text_posts (Reddit)."
+              }
+            }
+          },
+          "quality": {
+            "type": "object",
+            "required": [
+              "rows",
+              "gaps",
+              "limitations",
+              "composition"
+            ],
+            "properties": {
+              "rows": {
+                "type": "integer"
+              },
+              "gaps": {
+                "type": "array",
+                "items": {
+                  "type": "object"
+                }
+              },
+              "limitations": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "composition": {
+                "type": "object"
+              },
+              "coverage": {
+                "type": "object"
+              }
+            }
+          },
+          "request_id": {
+            "type": "string"
+          }
+        }
+      },
+      "TrendTrait": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "kind",
+          "status",
+          "videos_recent",
+          "videos_prior",
+          "videos_window",
+          "share_recent",
+          "share_prior",
+          "share_window",
+          "change_points",
+          "change_vs_prior_points",
+          "median_views",
+          "median_engagement_pct",
+          "evidence_ids"
+        ],
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Stable id, `kind:value`."
+          },
+          "label": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "format",
+              "content_type",
+              "setting",
+              "people",
+              "creator_on_camera",
+              "hook",
+              "theme",
+              "hashtag"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "rising",
+              "new",
+              "falling",
+              "steady",
+              "below_floor",
+              "not_comparable"
+            ],
+            "description": "`new`: rising with no video in the prior period. `not_comparable`: too few videos recorded the field in one period to compare."
+          },
+          "videos_recent": {
+            "type": "integer"
+          },
+          "videos_prior": {
+            "type": "integer"
+          },
+          "videos_window": {
+            "type": "integer"
+          },
+          "share_recent": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Percent of the recent period's videos that recorded this kind of field. Null when none did."
+          },
+          "share_prior": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "share_window": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "change_points": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "share_recent minus share_window, in percentage points. Null when the kind is not comparable."
+          },
+          "change_vs_prior_points": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "median_views": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Median observed views of the trait's videos in the window."
+          },
+          "median_engagement_pct": {
+            "type": [
+              "number",
+              "null"
+            ],
+            "description": "Median of (likes + comments + shares) / views, per video, as a percentage."
+          },
+          "evidence_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Ids of listed videos with this trait, recent first, most viewed first, at most 24. Only videos in `evidence` are listed; the counts include the rest."
           }
         }
       }
