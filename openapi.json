@@ -3717,7 +3717,7 @@
       "post": {
         "operationId": "trendReport",
         "summary": "Which traits are rising in the stored videos",
-        "description": "Compares the videos posted in the recent days (default 7) with the whole window (default 30 days) and says which traits are rising: on-screen format, content type, setting, who is on screen, whether the creator is on camera, hook pattern, theme, and caption hashtags. For each trait: its share of videos in the recent period, the prior period and the window, the change in percentage points, video counts, median views and engagement, and the videos behind it. Also a trailing daily share for the top risers, the biggest traits this week by count, and trend cards with example videos.\n\nEvery trait except hashtags was written by a model when each video was analysed, and each kind is counted only over the videos whose analysis recorded that field; `coverage` says how many. A trait is called rising only with at least 5 videos in the recent period, a change of at least 2 points, and 20 videos recording the field in each period; under those floors it is listed in `below_floor` or the comparison is withheld with a reason. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. With `subjects`, only videos collected under one of them are read, when any are; otherwise the whole library is read and `scope.mode` says so.\n\nUnlike `POST /v1/trending`, this needs no repeated metric snapshots: posting dates are known when a video is collected, so it answers on a freshly collected library. Free: no model is called and nothing is metered.",
+        "description": "Compares the videos posted in the recent days (default 7) with the whole window (default 30 days) and says which traits are rising: on-screen format, content type, setting, who is on screen, whether the creator is on camera, hook pattern, theme, and caption hashtags. For each trait: its share of videos in the recent period, the prior period and the window, the change in percentage points, video counts, median views and engagement, and the videos behind it. Also a trailing daily share for the top risers, the biggest traits this week by count, and trend cards with example videos.\n\nEvery trait except hashtags was written by a model when each video was analysed, and each kind is counted only over the videos whose analysis recorded that field; `coverage` says how many. A trait is called rising only with at least 5 videos in the recent period, 20 videos recording the field in each period, and a change of at least 2 points or, on 10 or more recent videos, a recent share at least double the days before's and 1 point above it; under those floors it is listed in `below_floor` or the comparison is withheld with a reason. The brand's own posts, declared official accounts, rows the subject judge dropped and the brand profile's exclusions are never counted. With `subjects`, only videos collected under one of them are read, when any are; otherwise the whole library is read and `scope.mode` says so.\n\nUnlike `POST /v1/trending`, this needs no repeated metric snapshots: posting dates are known when a video is collected, so it answers on a freshly collected library. Free: no model is called and nothing is metered.",
         "tags": [
           "Library"
         ],
@@ -11821,7 +11821,10 @@
               "min_trait_videos",
               "min_period_videos",
               "min_change_points",
-              "min_rolling_base"
+              "min_rolling_base",
+              "min_rise_ratio",
+              "min_relative_videos",
+              "min_relative_points"
             ],
             "properties": {
               "min_trait_videos": {
@@ -11835,6 +11838,18 @@
               },
               "min_rolling_base": {
                 "type": "integer"
+              },
+              "min_rise_ratio": {
+                "type": "number",
+                "description": "A trait also rises when its recent share is at least this many times the share in the days before, with `min_relative_videos` recent videos and a gain of `min_relative_points`."
+              },
+              "min_relative_videos": {
+                "type": "integer",
+                "description": "Recent videos a trait needs before the relative rise applies."
+              },
+              "min_relative_points": {
+                "type": "number",
+                "description": "Points a trait's recent share must gain on the days before under the relative rise."
               }
             }
           },
