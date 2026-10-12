@@ -1355,6 +1355,22 @@
                     },
                     "description": "ISO 3166 alpha 2 codes a creator posts from, e.g. [\"US\", \"GB\"]. A stored region elsewhere is left out; no stored region is kept and counted in `audience.region_unknown_kept`."
                   },
+                  "rank_by": {
+                    "type": "string",
+                    "enum": [
+                      "median_views",
+                      "views_per_follower"
+                    ],
+                    "default": "median_views",
+                    "description": "Order of the shortlist. `views_per_follower` ranks by median views here over the stored follower count, reach past the creator's own audience; creators with no stored count are listed after the ranked ones with `ranked: false`."
+                  },
+                  "min_posts": {
+                    "type": "integer",
+                    "minimum": 2,
+                    "maximum": 50,
+                    "default": 2,
+                    "description": "Posts a creator needs here to be ranked. Creators with fewer are listed after the ranked ones with `ranked: false`, never ordered among them."
+                  },
                   "max_cost_usd": {
                     "type": "number",
                     "description": "Ceiling on the charge for this call. The work always runs to completion; the charge is held at the smaller of the estimate and this ceiling, and `usage.charge_capped` says when the metered cost went above it. Results are complete either way. A server default applies when omitted.",
@@ -3736,6 +3752,35 @@
                   "window": {
                     "type": "string",
                     "description": "The whole window in whole days, \"2d\" to \"90d\". Default \"30d\"."
+                  },
+                  "topics": {
+                    "type": "array",
+                    "maxItems": 20,
+                    "description": "Named topics counted beside the analysed traits, kind `topic`. A video is in a topic when its caption, or its analysis summary or themes, contains one of the terms: whole word or phrase, case-insensitive, plural allowed, a trailing `*` for a prefix. Every topic comes back in `topics.rows`, a zero included.",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "name",
+                        "terms"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1,
+                          "maxLength": 80
+                        },
+                        "terms": {
+                          "type": "array",
+                          "minItems": 1,
+                          "maxItems": 30,
+                          "items": {
+                            "type": "string",
+                            "minLength": 2,
+                            "maxLength": 60
+                          }
+                        }
+                      }
+                    }
                   }
                 }
               }
@@ -6963,6 +7008,10 @@
           },
           "avatarUrl": {
             "type": "string"
+          },
+          "ranked": {
+            "type": "boolean",
+            "description": "False when listed after the ranked creators (below `min_posts`, or no follower count under `views_per_follower`). Absent on the default order."
           }
         }
       },
@@ -7046,6 +7095,44 @@
             "items": {
               "$ref": "#/components/schemas/CreatorRow"
             }
+          },
+          "ranking": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "description": "How `creators` is ordered. Ranked rows come first; the rest follow by median views.",
+            "properties": {
+              "by": {
+                "type": "string",
+                "enum": [
+                  "median_views",
+                  "views_per_follower"
+                ]
+              },
+              "min_posts": {
+                "type": "integer"
+              },
+              "ranked": {
+                "type": "integer",
+                "description": "Creators placed in the order."
+              },
+              "below_post_floor": {
+                "type": "integer",
+                "description": "Listed after the ranked rows: fewer than `min_posts` posts here."
+              },
+              "without_measure": {
+                "type": "integer",
+                "description": "Listed after the ranked rows: views per follower could not be computed (no stored follower count)."
+              }
+            },
+            "required": [
+              "by",
+              "min_posts",
+              "ranked",
+              "below_post_floor",
+              "without_measure"
+            ]
           },
           "single_post_creators": {
             "type": "array",
@@ -10652,7 +10739,11 @@
           "cost",
           "quality",
           "notes",
-          "request_id"
+          "request_id",
+          "axis_coverage",
+          "axes_unavailable",
+          "hooks_classified",
+          "hooks_unranked_because"
         ],
         "properties": {
           "summary": {
@@ -11377,6 +11468,130 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "axis_coverage": {
+            "type": "array",
+            "description": "Per axis, how many analysed videos had a classified value. Catch-all values (unclassified, other, not determinable) are not classified: they are left out of every compared value and every share denominator. Empty when the comparison is withheld.",
+            "items": {
+              "type": "object",
+              "required": [
+                "axis",
+                "label",
+                "analysed",
+                "classified",
+                "classified_share"
+              ],
+              "properties": {
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "hook_type",
+                    "setting",
+                    "creator_on_camera",
+                    "length"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "analysed": {
+                  "type": "object",
+                  "required": [
+                    "breakouts",
+                    "usual"
+                  ],
+                  "properties": {
+                    "breakouts": {
+                      "type": "integer"
+                    },
+                    "usual": {
+                      "type": "integer"
+                    }
+                  },
+                  "description": "Analysed videos on each side: the pool the axis is read from."
+                },
+                "classified": {
+                  "type": "object",
+                  "required": [
+                    "breakouts",
+                    "usual"
+                  ],
+                  "properties": {
+                    "breakouts": {
+                      "type": "integer"
+                    },
+                    "usual": {
+                      "type": "integer"
+                    }
+                  },
+                  "description": "Of those, the videos with a real (non catch-all) value on this axis."
+                },
+                "classified_share": {
+                  "type": "object",
+                  "required": [
+                    "breakouts",
+                    "usual"
+                  ],
+                  "properties": {
+                    "breakouts": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    },
+                    "usual": {
+                      "type": [
+                        "number",
+                        "null"
+                      ]
+                    }
+                  },
+                  "description": "Percent classified per side; null when that side has no analysed videos."
+                }
+              }
+            }
+          },
+          "axes_unavailable": {
+            "type": "array",
+            "description": "Axes with data that are not drawn, and why: below the comparison floors once catch-all values are left out, or fewer than 2 classified values to compare.",
+            "items": {
+              "type": "object",
+              "required": [
+                "axis",
+                "label",
+                "because"
+              ],
+              "properties": {
+                "axis": {
+                  "type": "string",
+                  "enum": [
+                    "format",
+                    "hook_type",
+                    "setting",
+                    "creator_on_camera",
+                    "length"
+                  ]
+                },
+                "label": {
+                  "type": "string"
+                },
+                "because": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "hooks_classified": {
+            "type": "integer",
+            "description": "Analysed breakouts with a recorded opening that matched a hook rule (hooks_recorded minus hooks_unclassified)."
+          },
+          "hooks_unranked_because": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why the hook types should not be ranked (too few classified openings, or fewer than 2 types above the floor); null when they can be."
           }
         }
       },
@@ -11409,7 +11624,8 @@
           "platforms",
           "corpus",
           "quality",
-          "request_id"
+          "request_id",
+          "topics"
         ],
         "properties": {
           "summary": {
@@ -11542,6 +11758,7 @@
                 "kind": {
                   "type": "string",
                   "enum": [
+                    "topic",
                     "format",
                     "content_type",
                     "setting",
@@ -11694,6 +11911,7 @@
                     "kind": {
                       "type": "string",
                       "enum": [
+                        "topic",
                         "format",
                         "content_type",
                         "setting",
@@ -11765,6 +11983,7 @@
                 "kind": {
                   "type": "string",
                   "enum": [
+                    "topic",
                     "format",
                     "content_type",
                     "setting",
@@ -11852,6 +12071,26 @@
               }
             }
           },
+          "topics": {
+            "type": "object",
+            "description": "The named topics requested, every one, a zero included, ordered as requested. Named topics also appear among `rising`, `traits` and `cards` (where they lead) when they qualify.",
+            "required": [
+              "configured",
+              "rows"
+            ],
+            "properties": {
+              "configured": {
+                "type": "integer"
+              },
+              "rows": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/TrendTrait"
+                },
+                "description": "Rising and new traits, strongest change first, at most 8. Empty when `rising_withheld_because` is set."
+              }
+            }
+          },
           "below_floor": {
             "type": "object",
             "required": [
@@ -11883,6 +12122,7 @@
                     "kind": {
                       "type": "string",
                       "enum": [
+                        "topic",
                         "format",
                         "content_type",
                         "setting",
@@ -12144,6 +12384,7 @@
           "kind": {
             "type": "string",
             "enum": [
+              "topic",
               "format",
               "content_type",
               "setting",
