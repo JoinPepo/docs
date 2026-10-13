@@ -2244,7 +2244,7 @@
                         "instagram"
                       ]
                     },
-                    "description": "Defaults to both. Reddit is not accepted: its search does not fail in the fuzzy way this endpoint exists to catch."
+                    "description": "Defaults to both. Collecting from other platforms (Reddit, YouTube, Pinterest) is coming soon; naming one is refused with 400."
                   },
                   "window": {
                     "type": "string",
@@ -2585,7 +2585,7 @@
       "post": {
         "operationId": "createCollection",
         "summary": "Start a collection run",
-        "description": "Starts an unattended job that searches a provider for `subject` and adds matching videos to this workspace's library. `budget_usd` is required: a collection spends provider credits unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/collections\"`) and pass that estimate's `expected` cost as `budget_usd`. For a person, band or rare word, check what the provider actually returns first with `POST /v1/collections/preview`.\n\nReturns 202: the run is accepted, not finished. Rows land as they are collected and are searchable immediately, flagged unverified until judged. Billing settles at the end for what actually landed, never for the estimate. Poll `GET /v1/collections/{collection_id}` for progress.\n\nBy default the run carries the **full treatment**: once collection ends, a corpus run checks each row is really about the subject, enriches metrics, clusters near-duplicates, analyzes and indexes each video (transcript, on-screen record, summary), and collects and reads about 20 comments per post. `budget_usd` must cover collection and treatment together (estimate with `treatment` set); the collection settles its own line and the corpus run settles once more, at the end, for the stages that actually ran. Pass `treatment: \"collect_only\"` for rows alone.\n\n**Running a collection plan.** Pass `plan_id` (from `POST /v1/collections/plans`) instead of `subject` to start one collection per search of a draft plan. Exactly one of `subject` and `plan_id`. With `plan_id`, the plan supplies `platforms`, `window`, `target` and `treatment`, so those fields are refused, and `webhook_url` is not available yet. `budget_usd` must be at least the plan's `estimate.cost_usd.expected`. Credit for every search is held together with starting the searches, one hold per search; if any search cannot be held, nothing is held, nothing starts, and the plan stays a draft. The response then carries `plan` and `collections` instead of `collection`, and each collection settles on its own as it finishes.",
+        "description": "Starts an unattended job that searches a provider for `subject` and adds matching videos to this workspace's library. `budget_usd` is required: a collection spends provider credits unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/collections\"`) and pass that estimate's `expected` cost as `budget_usd`. For a person, band or rare word, check what the provider actually returns first with `POST /v1/collections/preview`.\n\nReturns 202: the run is accepted, not finished. Rows land as they are collected and are searchable immediately, flagged unverified until judged. Billing settles at the end for what actually landed, never for the estimate. Poll `GET /v1/collections/{collection_id}` for progress.\n\nBy default the run carries the **full treatment**: once collection ends, a corpus run checks each row is really about the subject, enriches metrics, clusters near-duplicates, analyzes and indexes each video (transcript, on-screen record, summary), and collects and reads about 20 comments per post. `budget_usd` must cover collection and treatment together (estimate with `treatment` set); the collection settles its own line and the corpus run settles once more, at the end, for the stages that actually ran. Pass `treatment: \"collect_only\"` for rows alone.\n\n**Running a collection plan.** Pass `plan_id` (from `POST /v1/collections/plans`) instead of `subject` to start one collection per search of a draft plan. Exactly one of `subject` and `plan_id`. With `plan_id`, the plan supplies `platforms`, `window`, `target` and `treatment`, so those fields are refused, and `webhook_url` is not available yet. `budget_usd` must be at least the plan's `estimate.cost_usd.expected`. Every search in the plan's `confirm_before_running` must be listed in `confirm_searches`: a search the preview doubted runs only when the user agreed to it by name. Credit for every search is held together with starting the searches, one hold per search; if any search cannot be held, nothing is held, nothing starts, and the plan stays a draft. The response then carries `plan` and `collections` instead of `collection`, and each collection settles on its own as it finishes.",
         "tags": [
           "Collections"
         ],
@@ -2613,11 +2613,10 @@
                       "type": "string",
                       "enum": [
                         "tiktok",
-                        "instagram",
-                        "reddit"
+                        "instagram"
                       ]
                     },
-                    "description": "Defaults to tiktok and instagram (video). Add \"reddit\" for text posts and comment threads: reddit rows are checked for subject, de-duplicated, and have their comments collected and read, but are never watched or added to the video search index."
+                    "description": "Defaults to tiktok and instagram. Collecting from other platforms (Reddit, YouTube, Pinterest) is coming soon; naming one is refused with 400. Reddit threads already in the library can still be searched and read."
                   },
                   "window": {
                     "type": "string",
@@ -2649,6 +2648,13 @@
                     "type": "string",
                     "format": "uri",
                     "description": "Optional, `https://` on a public host. With the full treatment, POSTed a `corpus_run.completed` event `{event, collection_id, corpus_run_id, status, cost_usd, stages, warnings}` when the corpus run finishes. Unsigned, best effort, one attempt with a 5s timeout, no retry."
+                  },
+                  "confirm_searches": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "With `plan_id`: every search in the plan's `confirm_before_running` that the user agreed to keep, by name (case does not matter). A plan with a doubted search missing from this list is refused with 400, `field: \"confirm_searches\"` and `searches_to_confirm`, and nothing is run or charged."
                   }
                 },
                 "oneOf": [
@@ -3124,7 +3130,7 @@
       "post": {
         "operationId": "createMonitor",
         "summary": "Create a monitor (a workflow on a schedule)",
-        "description": "Saves a workflow on a schedule with a hard monthly budget. `monthly_cap_usd` is required: a monitor runs unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/monitors\"`), which returns the per-run cost and `monthly_expected_usd`.\n\nTwo workflows run today. `trending` re-reads the stored library each tick. `collection_topup` is the standing order that keeps a library growing: each tick starts one `/v1/collections` run per subject in `params.subjects` (1 to 10 search phrases; `params.subject` accepts a single phrase as `[subject]`; provide one or the other, not both), in array order, re-checking the remaining cap before each subject so a cap can stop the fan-out partway through (skipped subjects are attempted again next tick). Each collection uses the same `target` posts and `treatment` (full or collect_only), reserving its expected cost against the monthly cap; it settles for what actually landed (and, with the full treatment, the corpus run settles once more for the stages that ran) and the difference returns to the budget. A run whose expected cost does not fit what remains is recorded as `skipped_budget`; with `pause_at_cap` (default) the monitor pauses at the cap until the period rolls. Grow or shrink the subject list later, or change `target` or `monthly_cap_usd`, with `POST /v1/monitors/{monitor_id}/update`, with no need to recreate the schedule.\n\n`webhook_url`, when set, receives `monitor.run.completed`: for `collection_topup` when a collection (collect_only) or its corpus run (full) has settled, with `collection_id`, `corpus_run_id`, `cost_usd` and a summary; a multi-subject tick fires one `monitor.run.completed` per subject as each of its collections settles. Deliveries are unsigned, best effort, one attempt with a 5s timeout.",
+        "description": "Saves a workflow on a schedule with a hard monthly budget. `monthly_cap_usd` is required: a monitor runs unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/monitors\"`), which returns the per-run cost and `monthly_expected_usd`.\n\nTwo workflows run today. `trending` re-reads the stored library each tick. `collection_topup` is the standing order that keeps a library growing: each tick starts one `/v1/collections` run per subject in `params.subjects` (1 to 10 search phrases; `params.subject` accepts a single phrase as `[subject]`; provide one or the other, not both), in array order, re-checking the remaining cap before each subject so a cap can stop the fan-out partway through (skipped subjects are attempted again next tick). Each collection uses the same `target` posts and `treatment` (full or collect_only), reserving its expected cost against the monthly cap; it settles for what actually landed (and, with the full treatment, the corpus run settles once more for the stages that ran) and the difference returns to the budget. A run whose expected cost does not fit what remains is recorded as `skipped_budget`; with `pause_at_cap` (default) the monitor pauses at the cap until the period rolls. Grow or shrink the subject list later, or change `target` or `monthly_cap_usd`, with `POST /v1/monitors/{monitor_id}/update`, with no need to recreate the schedule.\n\n`webhook_url`, when set, receives `monitor.run.completed`: for `collection_topup` when a collection (collect_only) or its corpus run (full) has settled, with `collection_id`, `corpus_run_id`, `cost_usd` and a summary; a multi-subject tick fires one `monitor.run.completed` per subject as each of its collections settles. Deliveries are unsigned, best effort, one attempt with a 5s timeout.\n\n**Re-running a plan.** Pass `params.plan_id` to schedule a collection plan the user already approved, so the daily or weekly refresh searches exactly what the first run did. Pause and resume with `POST /v1/monitors/cancel` and `POST /v1/monitors/resume`.",
         "tags": [
           "Monitors"
         ],
@@ -3148,7 +3154,7 @@
                   },
                   "params": {
                     "type": "object",
-                    "description": "`collection_topup`: exactly one of `subject` or `subjects` (required), `target` (required, 1 to 5000 per run), `platforms` (default both), `window` (default \"7d\"), `treatment` (default \"full\"). `trending`: the `/v1/trending` body.",
+                    "description": "`collection_topup`: exactly one of `subject`, `subjects` or `plan_id` (required), `target` (required, 1 to 5000 per run), `platforms` (default both; not with `plan_id`), `window` (default \"7d\"), `treatment` (default \"full\", or the plan's). `trending`: the `/v1/trending` body.",
                     "properties": {
                       "subject": {
                         "type": "string",
@@ -3169,11 +3175,10 @@
                           "type": "string",
                           "enum": [
                             "tiktok",
-                            "instagram",
-                            "reddit"
+                            "instagram"
                           ]
                         },
-                        "description": "Defaults to tiktok and instagram (video). Add \"reddit\" for text posts and comment threads: no video analysis or search index."
+                        "description": "Defaults to tiktok and instagram. Collecting from other platforms (Reddit, YouTube, Pinterest) is coming soon; naming one is refused with 400. Reddit threads already in the library can still be searched and read."
                       },
                       "window": {
                         "type": "string",
@@ -3191,6 +3196,10 @@
                           "collect_only"
                         ],
                         "default": "full"
+                      },
+                      "plan_id": {
+                        "type": "string",
+                        "description": "Re-run a saved collection plan (from `POST /v1/collections/plans`) on this schedule instead of naming subjects. Each run starts one collection per plan search, with that search's own platforms, and `target` is the run's total split evenly across the searches. The searches are read from the plan at every run; change them by drafting a revised plan and pointing the schedule at it with `POST /v1/monitors/{monitor_id}/update`. Not with `subject`, `subjects` or `platforms`."
                       }
                     }
                   },
@@ -3409,7 +3418,7 @@
       "post": {
         "operationId": "pauseMonitor",
         "summary": "Pause a monitor",
-        "description": "Pauses the monitor: no further runs are scheduled. A collection already started by its last run carries on and settles normally.",
+        "description": "Pauses the monitor: no further runs are scheduled. A collection already started by its last run carries on and settles normally. Turn it back on with `POST /v1/monitors/resume`.",
         "tags": [
           "Monitors"
         ],
@@ -3595,12 +3604,17 @@
                   "target": {
                     "type": "integer",
                     "minimum": 1,
-                    "maximum": 5000
+                    "maximum": 5000,
+                    "description": "Videos per run. For a plan schedule, the run's total across all of the plan's searches (at least one per search)."
                   },
                   "monthly_cap_usd": {
                     "type": "number",
                     "minimum": 0.05,
                     "maximum": 10000
+                  },
+                  "plan_id": {
+                    "type": "string",
+                    "description": "Point a schedule that runs a collection plan at another plan, for example a revised draft of the same brief. A plan schedule's searches always come from its plan, so `add_subjects` and `remove_subjects` are refused on it."
                   }
                 }
               },
@@ -4137,6 +4151,82 @@
           },
           "401": {
             "$ref": "#/components/responses/Unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/monitors/resume": {
+      "post": {
+        "operationId": "resumeMonitor",
+        "summary": "Resume a monitor",
+        "description": "Turns a paused monitor back on and schedules its next run. A monitor that reached its monthly cap (`capped`) is refused: it resumes when its 30-day period rolls over, or at once if `monthly_cap_usd` is raised with `POST /v1/monitors/{monitor_id}/update`. Resuming an active monitor changes nothing.",
+        "tags": [
+          "Monitors"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "monitor_id"
+                ],
+                "properties": {
+                  "monitor_id": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resumed (or already active).",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "monitor",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "monitor": {
+                      "$ref": "#/components/schemas/Monitor"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "404": {
+            "description": "No such monitor in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -8143,6 +8233,24 @@
               "null"
             ],
             "description": "Set when this run is one search of a collection plan (`POST /v1/collections` with `plan_id`)."
+          },
+          "target_moved": {
+            "type": "object",
+            "required": [
+              "given",
+              "received"
+            ],
+            "properties": {
+              "given": {
+                "type": "integer",
+                "description": "Videos of target this search handed to the plan's other searches when it ran out of videos to find."
+              },
+              "received": {
+                "type": "integer",
+                "description": "Videos of target this search took on from a plan search that ran out. Already included in `target`."
+              }
+            },
+            "description": "Only on a run that is one search of a collection plan. A plan splits its target evenly across its searches; when one search runs out of videos, its unused share (and the credit held for it) moves to the searches still running, so the plan can still reach its total. The plan never spends more than was approved."
           }
         }
       },
@@ -12914,7 +13022,8 @@
           "estimate",
           "created_at",
           "expires_at",
-          "started_at"
+          "started_at",
+          "confirm_before_running"
         ],
         "properties": {
           "id": {
@@ -12995,6 +13104,13 @@
               "null"
             ],
             "description": "Unix ms, or null until the plan is run."
+          },
+          "confirm_before_running": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Searches the preview doubted: verdict `mixed` or `looks_wrong`, no videos returned, or not previewed at all. Each one runs only if the user agreed to it by name, passed in `confirm_searches` when the plan is run. Ask about each: revise it, drop it (both by drafting a new plan), or keep it."
           }
         }
       }
