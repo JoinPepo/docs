@@ -2234,6 +2234,16 @@
                     "type": "string",
                     "description": "The search phrase to probe, as you would pass it to `POST /v1/collections`."
                   },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "keyword",
+                      "hashtag",
+                      "creator"
+                    ],
+                    "default": "keyword",
+                    "description": "How the subject is searched: free text, one hashtag, or one account's own posts. A creator check counts how many returned posts that account posted."
+                  },
                   "platforms": {
                     "type": "array",
                     "minItems": 1,
@@ -2318,8 +2328,8 @@
     "/v1/collections/plans": {
       "post": {
         "operationId": "createCollectionPlan",
-        "summary": "Draft a collection plan",
-        "description": "Turns a brief into several keyword searches the user can approve at once. Takes a `label` and 1 to 8 `searches`, previews each exactly as `POST /v1/collections/preview` would (one page per platform), splits `target` (the TOTAL for the plan) evenly across the searches, the remainder going to the first ones, and saves a draft that can be run for 24 hours with `POST /v1/collections` and `plan_id`. Nothing is collected here.\n\nSubjects are trimmed, and repeats (compared ignoring case) are merged into the first. TikTok and Instagram only; any other platform is refused as not available yet.\n\nA search whose preview fails is kept with `preview: null` and named in `quality.limitations`; the plan only fails when every preview does. `quality.limitations` also names each search that looks wrong or mixed, with how to revise it.\n\nCosts one `search_request` ($0.01) per search previewed, held together first and charged only for the previews that ran. Live keys only.",
+        "summary": "Propose a collection plan",
+        "description": "Turns a brief into the searches that serve it, for the user to shape before anything is spent. Takes a `label`, the `goal` in the user's words, and 1 to 16 `searches`, each a keyword, a hashtag or a creator's account, with an optional reason and source. Splits `target` (the TOTAL for the plan) evenly across the searches, the remainder going to the first ones, and saves a proposal. Free: nothing is previewed, charged or collected.\n\nThen edit it with `POST /v1/collections/plans/update` (free) until the user is happy with the searches, check it with `POST /v1/collections/plans/check` (previews each search and quotes the plan, $0.01 a search), and run it with `POST /v1/collections` and `plan_id`.\n\n`plan.coverage` says how many searches a plan of this size is well served by (more videos call for more searches), which kinds it uses, what it leaves out, and searches worth adding. Subjects are trimmed, and repeats of the same kind (compared ignoring case) are merged into the first. TikTok and Instagram only; any other platform is refused as coming soon. Live keys only.\n\nA workspace can propose up to 200 plans in 24 hours; past that the call is 429 and an existing plan should be edited instead.",
         "tags": [
           "Collections"
         ],
@@ -2331,6 +2341,7 @@
                 "type": "object",
                 "required": [
                   "label",
+                  "goal",
                   "searches"
                 ],
                 "additionalProperties": false,
@@ -2340,10 +2351,15 @@
                     "maxLength": 120,
                     "description": "A short name for the plan, e.g. \"The North Face consumer sentiment\"."
                   },
+                  "goal": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "What the research is for, in the user's words, e.g. \"How people talk about our new trail shoe against Hoka and On\". Ask for it; the brand profile alone is not the brief."
+                  },
                   "searches": {
                     "type": "array",
                     "minItems": 1,
-                    "maxItems": 8,
+                    "maxItems": 16,
                     "items": {
                       "type": "object",
                       "required": [
@@ -2354,7 +2370,17 @@
                         "subject": {
                           "type": "string",
                           "maxLength": 500,
-                          "description": "A keyword search, written the way people actually type or caption it."
+                          "description": "For `keyword`, words as people type or caption them. For `hashtag`, one tag (a leading `#` is dropped). For `creator`, the account's handle or profile link (a leading `@` is dropped)."
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "keyword",
+                            "hashtag",
+                            "creator"
+                          ],
+                          "default": "keyword",
+                          "description": "`keyword` searches free text, `hashtag` one tag's feed, `creator` one account's own posts. Mixing them reaches what keyword search alone misses: posts that only tag a name, and everything an account posted."
                         },
                         "platforms": {
                           "type": "array",
@@ -2367,6 +2393,20 @@
                             ]
                           },
                           "description": "This search's platforms. Defaults to the plan's."
+                        },
+                        "reason": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "description": "Why this search serves the goal, shown to the user beside it."
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "brand_profile",
+                            "suggested"
+                          ],
+                          "description": "Who put it there: the user asked for it, it came from the brand profile, or it was suggested to round out the brief."
                         }
                       }
                     }
@@ -2408,18 +2448,27 @@
               },
               "examples": {
                 "brand": {
-                  "summary": "A brand, its products and a competitor",
+                  "summary": "A brand, a product, its tag and a competitor's account",
                   "value": {
                     "label": "The North Face consumer sentiment",
+                    "goal": "How people talk about North Face puffers against Patagonia",
                     "searches": [
                       {
-                        "subject": "north face"
+                        "subject": "north face puffer",
+                        "reason": "The product by name",
+                        "source": "user"
                       },
                       {
-                        "subject": "nuptse jacket"
+                        "subject": "nuptse",
+                        "kind": "hashtag",
+                        "reason": "The product's tag",
+                        "source": "suggested"
                       },
                       {
-                        "subject": "patagonia vs north face"
+                        "subject": "patagonia",
+                        "kind": "creator",
+                        "reason": "The competitor the user named",
+                        "source": "user"
                       }
                     ],
                     "window": "30d",
@@ -2432,14 +2481,8 @@
         },
         "responses": {
           "201": {
-            "description": "The draft, each search's preview, and what the plan cannot promise.",
+            "description": "The proposal. Nothing was charged.",
             "headers": {
-              "X-Pepo-Cost-Usd": {
-                "$ref": "#/components/headers/Cost"
-              },
-              "X-Pepo-Balance-Usd": {
-                "$ref": "#/components/headers/Balance"
-              },
               "X-Pepo-Request-Id": {
                 "$ref": "#/components/headers/RequestId"
               }
@@ -2452,7 +2495,6 @@
                     "plan",
                     "quality",
                     "note",
-                    "usage",
                     "request_id"
                   ],
                   "properties": {
@@ -2475,10 +2517,7 @@
                     },
                     "note": {
                       "type": "string",
-                      "description": "What to do next."
-                    },
-                    "usage": {
-                      "$ref": "#/components/schemas/Usage"
+                      "description": "What to do next, by where the plan stands."
                     },
                     "request_id": {
                       "type": "string"
@@ -2494,24 +2533,11 @@
           "401": {
             "$ref": "#/components/responses/Unauthorized"
           },
-          "402": {
-            "$ref": "#/components/responses/InsufficientCredits"
-          },
           "403": {
             "$ref": "#/components/responses/TestKeyReadOnly"
           },
-          "502": {
-            "description": "No search could be previewed. No plan is saved, the hold is released and nothing is charged.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProviderErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "$ref": "#/components/responses/ProviderUnavailable"
+          "429": {
+            "$ref": "#/components/responses/RateLimited"
           }
         }
       }
@@ -4230,6 +4256,354 @@
           }
         }
       }
+    },
+    "/v1/collections/plans/update": {
+      "post": {
+        "operationId": "updateCollectionPlan",
+        "summary": "Edit a collection plan",
+        "tags": [
+          "Collections"
+        ],
+        "description": "Edits a plan before it runs: replace its searches, or change its total, window, treatment, label or goal. Free. Searches kept as they were keep their checks; new or changed ones are unchecked until the plan is checked again, and an unchecked search runs only if the user agreed to it by name. An expired plan becomes a proposal again. A plan that has started cannot be edited.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan_id"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "plan_id": {
+                    "type": "string",
+                    "description": "The plan to edit."
+                  },
+                  "label": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "description": "A short name for the plan, e.g. \"The North Face consumer sentiment\"."
+                  },
+                  "goal": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "description": "What the research is for, in the user's words, e.g. \"How people talk about our new trail shoe against Hoka and On\". Ask for it; the brand profile alone is not the brief."
+                  },
+                  "searches": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 16,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "subject"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "subject": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "description": "For `keyword`, words as people type or caption them. For `hashtag`, one tag (a leading `#` is dropped). For `creator`, the account's handle or profile link (a leading `@` is dropped)."
+                        },
+                        "kind": {
+                          "type": "string",
+                          "enum": [
+                            "keyword",
+                            "hashtag",
+                            "creator"
+                          ],
+                          "default": "keyword",
+                          "description": "`keyword` searches free text, `hashtag` one tag's feed, `creator` one account's own posts. Mixing them reaches what keyword search alone misses: posts that only tag a name, and everything an account posted."
+                        },
+                        "platforms": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "tiktok",
+                              "instagram"
+                            ]
+                          },
+                          "description": "This search's platforms. Defaults to the plan's."
+                        },
+                        "reason": {
+                          "type": "string",
+                          "maxLength": 200,
+                          "description": "Why this search serves the goal, shown to the user beside it."
+                        },
+                        "source": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "brand_profile",
+                            "suggested"
+                          ],
+                          "description": "Who put it there: the user asked for it, it came from the brand profile, or it was suggested to round out the brief."
+                        }
+                      }
+                    },
+                    "description": "Replaces the plan's searches. A search kept as it was (same kind, subject and platforms) keeps its check; new or changed ones are unchecked."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "tiktok",
+                        "instagram"
+                      ]
+                    },
+                    "description": "The default for the `searches` passed with it; only accepted alongside `searches`."
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back every search collects. Changing it unchecks every search."
+                  },
+                  "target": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "default": 50,
+                    "description": "Total videos for the whole plan, split across its searches. At least the number of searches."
+                  },
+                  "treatment": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "collect_only"
+                    ],
+                    "default": "full",
+                    "description": "As on `POST /v1/collections`, for every search."
+                  }
+                }
+              },
+              "examples": {
+                "drop": {
+                  "summary": "Drop a search and add a hashtag",
+                  "value": {
+                    "plan_id": "k57abc",
+                    "searches": [
+                      {
+                        "subject": "north face puffer"
+                      },
+                      {
+                        "subject": "northface",
+                        "kind": "hashtag"
+                      }
+                    ],
+                    "target": 40
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The plan as edited. Nothing was charged.",
+            "headers": {
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "plan",
+                    "quality",
+                    "note",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/CollectionPlan"
+                    },
+                    "quality": {
+                      "type": "object",
+                      "required": [
+                        "limitations"
+                      ],
+                      "properties": {
+                        "limitations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "note": {
+                      "type": "string",
+                      "description": "What to do next, by where the plan stands."
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such collection plan in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          }
+        }
+      }
+    },
+    "/v1/collections/plans/check": {
+      "post": {
+        "operationId": "checkCollectionPlan",
+        "summary": "Check a collection plan",
+        "tags": [
+          "Collections"
+        ],
+        "description": "Previews each search that has not been checked, or whose check is more than a day old, exactly as `POST /v1/collections/preview` would (one page per platform), and quotes the plan. The plan becomes a `draft` that can be run until its oldest check is 24 hours old; checking again renews it. A search whose check fails is kept unchecked and named in `quality.limitations`; nothing is saved only when every check fails. A creator search is judged by how many returned posts the account itself posted.\n\nCosts one `search_request` ($0.01) per search checked, held together first and charged only for the checks that ran; a plan whose checks are all fresh is returned free. Live keys only.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "plan_id"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "plan_id": {
+                    "type": "string",
+                    "description": "The plan to check."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The checked plan, what each check found, and what the plan cannot promise.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "plan",
+                    "quality",
+                    "note",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/CollectionPlan"
+                    },
+                    "quality": {
+                      "type": "object",
+                      "required": [
+                        "limitations"
+                      ],
+                      "properties": {
+                        "limitations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "note": {
+                      "type": "string",
+                      "description": "What to do next, by where the plan stands."
+                    },
+                    "request_id": {
+                      "type": "string"
+                    },
+                    "usage": {
+                      "$ref": "#/components/schemas/Usage"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "404": {
+            "description": "No such collection plan in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The plan was edited, started or removed while its searches were being checked. The checks that ran are charged; check it again.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "No search could be checked. The hold is released and nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/ProviderUnavailable"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -4420,7 +4794,8 @@
                   "budget_too_low",
                   "test_key_forbidden",
                   "provider_unavailable",
-                  "provider_error"
+                  "provider_error",
+                  "conflict"
                 ]
               },
               "message": {
@@ -9383,7 +9758,8 @@
           "verdict",
           "suggestion",
           "usage",
-          "request_id"
+          "request_id",
+          "kind"
         ],
         "properties": {
           "subject": {
@@ -9495,6 +9871,14 @@
           },
           "request_id": {
             "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "keyword",
+              "hashtag",
+              "creator"
+            ]
           }
         }
       },
@@ -12929,18 +13313,35 @@
       },
       "CollectionPlanSearch": {
         "type": "object",
-        "description": "One keyword search in a collection plan. Run, it becomes one collection.",
+        "description": "One search in a collection plan: a keyword, a hashtag or a creator's account. Run, it becomes one collection.",
         "required": [
           "subject",
+          "kind",
+          "label",
           "platforms",
           "target",
+          "reason",
+          "source",
           "preview",
+          "checked_at",
           "collection_id"
         ],
         "properties": {
           "subject": {
             "type": "string",
-            "description": "The search phrase, trimmed."
+            "description": "The search, trimmed: words, a tag without `#`, or a handle without `@`."
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "keyword",
+              "hashtag",
+              "creator"
+            ]
+          },
+          "label": {
+            "type": "string",
+            "description": "How the search reads to people: `\"north face\"`, `#northface` or `@thenorthface`."
           },
           "platforms": {
             "type": "array",
@@ -12956,8 +13357,28 @@
             "type": "integer",
             "description": "This search's share of the plan's total target."
           },
+          "reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Why this search serves the goal."
+          },
+          "source": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "user",
+              "brand_profile",
+              "suggested",
+              null
+            ],
+            "description": "Who put it there."
+          },
           "preview": {
-            "description": "What one page of this search returned when the plan was drafted. Null when the preview failed: nothing is known about what the search returns, and the preview was not charged.",
+            "description": "What one page of this search returned when it was last checked. Null until it is checked, or when its check failed (not charged).",
             "oneOf": [
               {
                 "type": "object",
@@ -12979,7 +13400,7 @@
                   },
                   "mention_rate": {
                     "type": "number",
-                    "description": "Share of the returned posts whose caption names the subject."
+                    "description": "Share of the returned posts on subject: whose caption names it, or for a creator search, that the account itself posted."
                   },
                   "returned": {
                     "type": "integer",
@@ -13005,12 +13426,19 @@
               "null"
             ],
             "description": "The collection this search became, once the plan is started. Null before that."
+          },
+          "checked_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix ms of its last check; null when it has none."
           }
         }
       },
       "CollectionPlan": {
         "type": "object",
-        "description": "A collection plan: several keyword searches drafted, previewed and quoted together, then run with one `POST /v1/collections` carrying `plan_id`, one collection per search.",
+        "description": "A collection plan: the searches for one brief, proposed for free, checked and quoted together, then run with one `POST /v1/collections` carrying `plan_id`, one collection per search.",
         "required": [
           "id",
           "label",
@@ -13023,7 +13451,9 @@
           "created_at",
           "expires_at",
           "started_at",
-          "confirm_before_running"
+          "confirm_before_running",
+          "goal",
+          "coverage"
         ],
         "properties": {
           "id": {
@@ -13033,14 +13463,22 @@
             "type": "string",
             "description": "The plan's short human name."
           },
+          "goal": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "What the research is for, in the user's words. Null on plans made before goals were asked for."
+          },
           "status": {
             "type": "string",
             "enum": [
+              "proposed",
               "draft",
               "started",
               "expired"
             ],
-            "description": "`draft` can be run until `expires_at`. `started` once its collections exist. `expired` is a draft past `expires_at`; draft it again."
+            "description": "`proposed`: free and editable, never checked. `draft`: checked and quoted, can be run until `expires_at`. `started` once its collections exist. `expired`: past `expires_at`; edit it to make it a proposal again, or check it again."
           },
           "searches": {
             "type": "array",
@@ -13096,7 +13534,7 @@
           },
           "expires_at": {
             "type": "integer",
-            "description": "Unix ms. A draft can be run until then: its previews and quote describe that day's search results."
+            "description": "Unix ms. A proposal is kept for 7 days. A checked plan can be run until its oldest check is 24 hours old, because checks and the quote describe that day's search results."
           },
           "started_at": {
             "type": [
@@ -13110,7 +13548,89 @@
             "items": {
               "type": "string"
             },
-            "description": "Searches the preview doubted: verdict `mixed` or `looks_wrong`, no videos returned, or not previewed at all. Each one runs only if the user agreed to it by name, passed in `confirm_searches` when the plan is run. Ask about each: revise it, drop it (both by drafting a new plan), or keep it."
+            "description": "Searches the user must agree to by name before the plan runs: any whose check was `mixed` or `looks_wrong`, returned nothing, failed, or has not been checked. A keyword search is named by its subject, a hashtag as `#tag` and a creator as `@handle`; pass them in `confirm_searches` when the plan is run. Ask about each: revise or drop it (edit the plan and check again), or keep it."
+          },
+          "coverage": {
+            "type": "object",
+            "required": [
+              "recommended_searches",
+              "kinds",
+              "notes",
+              "suggested_searches"
+            ],
+            "description": "Whether the searches are broad enough for the plan's target. A search returns its strongest matches first, so more videos call for more searches and more kinds of search.",
+            "properties": {
+              "recommended_searches": {
+                "type": "object",
+                "required": [
+                  "min",
+                  "max"
+                ],
+                "properties": {
+                  "min": {
+                    "type": "integer"
+                  },
+                  "max": {
+                    "type": "integer"
+                  }
+                },
+                "description": "How many searches a plan of this target is well served by."
+              },
+              "kinds": {
+                "type": "object",
+                "required": [
+                  "keyword",
+                  "hashtag",
+                  "creator"
+                ],
+                "properties": {
+                  "keyword": {
+                    "type": "integer"
+                  },
+                  "hashtag": {
+                    "type": "integer"
+                  },
+                  "creator": {
+                    "type": "integer"
+                  }
+                }
+              },
+              "notes": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "What the searches leave out for this size, one sentence each."
+              },
+              "suggested_searches": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": [
+                    "subject",
+                    "kind",
+                    "reason"
+                  ],
+                  "properties": {
+                    "subject": {
+                      "type": "string"
+                    },
+                    "kind": {
+                      "type": "string",
+                      "enum": [
+                        "keyword",
+                        "hashtag",
+                        "creator"
+                      ]
+                    },
+                    "reason": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "description": "Searches worth adding, each with why. A starting point for the conversation, not a decision."
+              }
+            }
           }
         }
       }
