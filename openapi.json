@@ -1676,6 +1676,11 @@
                     ],
                     "default": "this",
                     "description": "`this` asks this workspace's library. `all` asks every Pepo library's analyzed videos, for when this one is thin on a subject: billed like any ask, not gated on this library's unanalyzed videos, and each citation carries `in_your_library`. `POST /v1/library/add` keeps the others at $0.02 each, with their analysis. Cannot be combined with `video_ids`."
+                  },
+                  "read_footage": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "false never watches a video again live: it answers from cached answers, transcripts (fetched from the index when not stored yet) and the stored analysis: no `video_read` is billed or held, only `corpus_question`. A hit the stored records cannot answer falls back to its stored analysis."
                   }
                 }
               },
@@ -1831,7 +1836,7 @@
       "post": {
         "operationId": "analyzeLibrary",
         "summary": "Analyze the videos waiting in the library",
-        "description": "The yes to a `needs_analysis` answer from `POST /v1/corpus/ask`: analyzes the videos in the library that have not been analyzed yet, including rows a `collect_only` collection left waiting. Nothing new is collected. Reddit rows, excluded rows, the brand's own posts and the non-representative copies of a duplicate cluster are skipped: they were never part of what an ask reads.\n\n**Price.** Each waiting video is priced for the steps it still needs: one `video_analyzed` ($0.125) if it has no stored analysis, one `video_indexed` ($0.10) for the search index, and one `content_enriched` ($0.002) for the media fetch. There is no subject check in a library pass. A video up to 3 minutes long is one unit of `video_analyzed` and `video_indexed`; past 3 minutes it is one more unit per started 72 seconds, so a long video costs more than a short clip rather than being sold below cost. A video of unknown length is priced as a short one (see `library.videos_of_unknown_length`). The estimate is held when the pass starts and settled once it finishes for the steps that actually ran, never above the hold.\n\n**Passes.** One pass may hold at most the call cap: `max_cost_usd` when given, else the workspace's own default call cap, else the endpoint default. The pass takes the waiting videos that fit under it, in library order; `videos_left_for_a_later_pass` says how many remain, and the next ask quotes them. It is refused with `budget_too_low` only when not even one waiting video fits.\n\nReturns 202 once accepted; poll `GET /v1/collections/{collection_id}` for progress, then ask the same question again through `POST /v1/corpus/ask` once it finishes. Returns 200 with `started: false` and no charge when nothing is waiting, or when a pass is already running for this brand, in which case `library.analysis_in_progress` names it.",
+        "description": "The yes to a `needs_analysis` answer from `POST /v1/corpus/ask`: analyzes the videos in the library that have not been analyzed yet, including rows a `collect_only` collection left waiting. Nothing new is collected. Reddit rows, excluded rows, the brand's own posts and the non-representative copies of a duplicate cluster are skipped: they were never part of what an ask reads.\n\n**Price.** Each waiting video is priced for the steps it still needs: one credit, `video_analyzed` ($1), if it has no stored analysis, regardless of length (short-form TikTok and Instagram). Indexing and the media fetch are included, so a video that only needs indexing costs nothing. There is no subject check in a library pass. The estimate is held when the pass starts and settled once it finishes for the steps that actually ran, never above the hold.\n\n**Passes.** One pass may hold at most the call cap: `max_cost_usd` when given, else the workspace's own default call cap, else the endpoint default. The pass takes the waiting videos that fit under it, in library order; `videos_left_for_a_later_pass` says how many remain, and the next ask quotes them. It is refused with `budget_too_low` only when not even one waiting video fits.\n\nReturns 202 once accepted; poll `GET /v1/collections/{collection_id}` for progress, then ask the same question again through `POST /v1/corpus/ask` once it finishes. Returns 200 with `started: false` and no charge when nothing is waiting, or when a pass is already running for this brand, in which case `library.analysis_in_progress` names it.",
         "tags": [
           "Library"
         ],
@@ -1992,7 +1997,7 @@
                     "value": {
                       "error": {
                         "type": "budget_too_low",
-                        "message": "Analyzing even one of the 40 videos waiting in the library is estimated at $0.23, above the $0.10 this call may spend. Nothing was started.",
+                        "message": "Analyzing even one of the 40 videos waiting in the library is estimated at $1.00, above the $0.50 this call may spend. Nothing was started.",
                         "request_id": "req_…",
                         "estimated_cost_usd": 0.227,
                         "field": "max_cost_usd"
@@ -2310,11 +2315,11 @@
         }
       }
     },
-    "/v1/collections": {
+    "/v1/collections/plans": {
       "post": {
-        "operationId": "createCollection",
-        "summary": "Start a collection run",
-        "description": "Starts an unattended job that searches a provider for `subject` and adds matching videos to this workspace's library. `budget_usd` is required: a collection spends provider credits unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/collections\"`) and pass that estimate's `expected` cost as `budget_usd`. For a person, band or rare word, check what the provider actually returns first with `POST /v1/collections/preview`.\n\nReturns 202: the run is accepted, not finished. Rows land as they are collected and are searchable immediately, flagged unverified until judged. Billing settles at the end for what actually landed, never for the estimate. Poll `GET /v1/collections/{collection_id}` for progress.\n\nBy default the run carries the **full treatment**: once collection ends, a corpus run checks each row is really about the subject, enriches metrics, clusters near-duplicates, analyzes and indexes each video (transcript, on-screen record, summary), and collects and reads about 20 comments per post. `budget_usd` must cover collection and treatment together (estimate with `treatment` set); the collection settles its own line and the corpus run settles once more, at the end, for the stages that actually ran. Pass `treatment: \"collect_only\"` for rows alone.",
+        "operationId": "createCollectionPlan",
+        "summary": "Draft a collection plan",
+        "description": "Turns a brief into several keyword searches the user can approve at once. Takes a `label` and 1 to 8 `searches`, previews each exactly as `POST /v1/collections/preview` would (one page per platform), splits `target` (the TOTAL for the plan) evenly across the searches, the remainder going to the first ones, and saves a draft that can be run for 24 hours with `POST /v1/collections` and `plan_id`. Nothing is collected here.\n\nSubjects are trimmed, and repeats (compared ignoring case) are merged into the first. TikTok and Instagram only; any other platform is refused as not available yet.\n\nA search whose preview fails is kept with `preview: null` and named in `quality.limitations`; the plan only fails when every preview does. `quality.limitations` also names each search that looks wrong or mixed, with how to revise it.\n\nCosts one `search_request` ($0.01) per search previewed, held together first and charged only for the previews that ran. Live keys only.",
         "tags": [
           "Collections"
         ],
@@ -2325,13 +2330,282 @@
               "schema": {
                 "type": "object",
                 "required": [
-                  "subject",
+                  "label",
+                  "searches"
+                ],
+                "additionalProperties": false,
+                "properties": {
+                  "label": {
+                    "type": "string",
+                    "maxLength": 120,
+                    "description": "A short name for the plan, e.g. \"The North Face consumer sentiment\"."
+                  },
+                  "searches": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 8,
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "subject"
+                      ],
+                      "additionalProperties": false,
+                      "properties": {
+                        "subject": {
+                          "type": "string",
+                          "maxLength": 500,
+                          "description": "A keyword search, written the way people actually type or caption it."
+                        },
+                        "platforms": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string",
+                            "enum": [
+                              "tiktok",
+                              "instagram"
+                            ]
+                          },
+                          "description": "This search's platforms. Defaults to the plan's."
+                        }
+                      }
+                    }
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "minItems": 1,
+                    "items": {
+                      "type": "string",
+                      "enum": [
+                        "tiktok",
+                        "instagram"
+                      ]
+                    },
+                    "description": "Defaults to both."
+                  },
+                  "window": {
+                    "type": "string",
+                    "pattern": "^\\d+[hd]$",
+                    "description": "How far back every search collects, parsed as `POST /v1/collections` parses it. Defaults to `7d`."
+                  },
+                  "target": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500,
+                    "default": 50,
+                    "description": "Total videos for the whole plan, split across its searches. At least the number of searches."
+                  },
+                  "treatment": {
+                    "type": "string",
+                    "enum": [
+                      "full",
+                      "collect_only"
+                    ],
+                    "default": "full",
+                    "description": "As on `POST /v1/collections`, for every search."
+                  }
+                }
+              },
+              "examples": {
+                "brand": {
+                  "summary": "A brand, its products and a competitor",
+                  "value": {
+                    "label": "The North Face consumer sentiment",
+                    "searches": [
+                      {
+                        "subject": "north face"
+                      },
+                      {
+                        "subject": "nuptse jacket"
+                      },
+                      {
+                        "subject": "patagonia vs north face"
+                      }
+                    ],
+                    "window": "30d",
+                    "target": 60
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The draft, each search's preview, and what the plan cannot promise.",
+            "headers": {
+              "X-Pepo-Cost-Usd": {
+                "$ref": "#/components/headers/Cost"
+              },
+              "X-Pepo-Balance-Usd": {
+                "$ref": "#/components/headers/Balance"
+              },
+              "X-Pepo-Request-Id": {
+                "$ref": "#/components/headers/RequestId"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "plan",
+                    "quality",
+                    "note",
+                    "usage",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/CollectionPlan"
+                    },
+                    "quality": {
+                      "type": "object",
+                      "required": [
+                        "limitations"
+                      ],
+                      "properties": {
+                        "limitations": {
+                          "type": "array",
+                          "items": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "note": {
+                      "type": "string",
+                      "description": "What to do next."
+                    },
+                    "usage": {
+                      "$ref": "#/components/schemas/Usage"
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "402": {
+            "$ref": "#/components/responses/InsufficientCredits"
+          },
+          "403": {
+            "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "502": {
+            "description": "No search could be previewed. No plan is saved, the hold is released and nothing is charged.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProviderErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "$ref": "#/components/responses/ProviderUnavailable"
+          }
+        }
+      }
+    },
+    "/v1/collections/plans/{plan_id}": {
+      "get": {
+        "operationId": "getCollectionPlan",
+        "summary": "Get one collection plan",
+        "description": "The plan, and once it is started each search's collection as `GET /v1/collections/{collection_id}` shows it, in search order. Free.",
+        "tags": [
+          "Collections"
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The plan and its collections.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "plan",
+                    "collections",
+                    "request_id"
+                  ],
+                  "properties": {
+                    "plan": {
+                      "$ref": "#/components/schemas/CollectionPlan"
+                    },
+                    "collections": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Collection"
+                      },
+                      "description": "Empty until the plan is started."
+                    },
+                    "request_id": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "description": "No such collection plan in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/collections": {
+      "post": {
+        "operationId": "createCollection",
+        "summary": "Start a collection run",
+        "description": "Starts an unattended job that searches a provider for `subject` and adds matching videos to this workspace's library. `budget_usd` is required: a collection spends provider credits unattended, so its ceiling is never optional. Price it first with `POST /v1/estimate` (`endpoint: \"/v1/collections\"`) and pass that estimate's `expected` cost as `budget_usd`. For a person, band or rare word, check what the provider actually returns first with `POST /v1/collections/preview`.\n\nReturns 202: the run is accepted, not finished. Rows land as they are collected and are searchable immediately, flagged unverified until judged. Billing settles at the end for what actually landed, never for the estimate. Poll `GET /v1/collections/{collection_id}` for progress.\n\nBy default the run carries the **full treatment**: once collection ends, a corpus run checks each row is really about the subject, enriches metrics, clusters near-duplicates, analyzes and indexes each video (transcript, on-screen record, summary), and collects and reads about 20 comments per post. `budget_usd` must cover collection and treatment together (estimate with `treatment` set); the collection settles its own line and the corpus run settles once more, at the end, for the stages that actually ran. Pass `treatment: \"collect_only\"` for rows alone.\n\n**Running a collection plan.** Pass `plan_id` (from `POST /v1/collections/plans`) instead of `subject` to start one collection per search of a draft plan. Exactly one of `subject` and `plan_id`. With `plan_id`, the plan supplies `platforms`, `window`, `target` and `treatment`, so those fields are refused, and `webhook_url` is not available yet. `budget_usd` must be at least the plan's `estimate.cost_usd.expected`. Credit for every search is held together with starting the searches, one hold per search; if any search cannot be held, nothing is held, nothing starts, and the plan stays a draft. The response then carries `plan` and `collections` instead of `collection`, and each collection settles on its own as it finishes.",
+        "tags": [
+          "Collections"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
                   "budget_usd"
                 ],
                 "properties": {
                   "subject": {
                     "type": "string",
-                    "description": "The search phrase the provider collects for, e.g. \"y combinator\". One subject per run: start several runs for several subjects."
+                    "description": "The search phrase the provider collects for, e.g. \"y combinator\". One subject per run: start several runs for several subjects. Required unless `plan_id` is passed; never both."
+                  },
+                  "plan_id": {
+                    "type": "string",
+                    "description": "Run a draft collection plan instead of one `subject`: one collection per search. Never with `subject`, `platforms`, `window`, `target`, `treatment` or `webhook_url`."
                   },
                   "platforms": {
                     "type": "array",
@@ -2376,7 +2650,29 @@
                     "format": "uri",
                     "description": "Optional, `https://` on a public host. With the full treatment, POSTed a `corpus_run.completed` event `{event, collection_id, corpus_run_id, status, cost_usd, stages, warnings}` when the corpus run finishes. Unsigned, best effort, one attempt with a 5s timeout, no retry."
                   }
-                }
+                },
+                "oneOf": [
+                  {
+                    "required": [
+                      "subject"
+                    ],
+                    "not": {
+                      "required": [
+                        "plan_id"
+                      ]
+                    }
+                  },
+                  {
+                    "required": [
+                      "plan_id"
+                    ],
+                    "not": {
+                      "required": [
+                        "subject"
+                      ]
+                    }
+                  }
+                ]
               },
               "examples": {
                 "basic": {
@@ -2400,6 +2696,13 @@
                     "treatment": "full",
                     "budget_usd": 20
                   }
+                },
+                "plan": {
+                  "summary": "Run a collection plan",
+                  "value": {
+                    "plan_id": "k17abc",
+                    "budget_usd": 50
+                  }
                 }
               }
             }
@@ -2419,7 +2722,8 @@
                   "type": "object",
                   "properties": {
                     "collection": {
-                      "$ref": "#/components/schemas/Collection"
+                      "$ref": "#/components/schemas/Collection",
+                      "description": "The run. Absent when a plan was run; see `collections`."
                     },
                     "estimate": {
                       "type": "object",
@@ -2455,6 +2759,16 @@
                     },
                     "request_id": {
                       "type": "string"
+                    },
+                    "plan": {
+                      "$ref": "#/components/schemas/CollectionPlan"
+                    },
+                    "collections": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Collection"
+                      },
+                      "description": "With `plan_id`: one collection per search, in search order."
                     }
                   }
                 }
@@ -2512,6 +2826,16 @@
           },
           "403": {
             "$ref": "#/components/responses/TestKeyReadOnly"
+          },
+          "404": {
+            "description": "With `plan_id`: no such collection plan in this workspace.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       },
@@ -3544,6 +3868,11 @@
                   "max_cost_usd": {
                     "type": "number",
                     "exclusiveMinimum": 0
+                  },
+                  "read_footage": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "false never watches a video again live: it answers from cached answers, transcripts (fetched from the index when not stored yet) and the stored analysis: no `video_read` is billed or held, only `corpus_question`. A hit the stored records cannot answer falls back to its stored analysis."
                   }
                 }
               }
@@ -3938,7 +4267,7 @@
         }
       },
       "ProviderUnavailable": {
-        "description": "A provider this endpoint depends on is not configured on this deployment. A Pepo-side configuration problem, not a problem with the request: nothing is reserved or charged, the balance is untouched, and retrying will not help until the named setting exists. `provider` names the provider and `missing_config` the setting.",
+        "description": "A capability this endpoint depends on, such as video analysis or video collection, is not configured on this deployment. A Pepo-side configuration problem, not a problem with the request: nothing is reserved or charged, the balance is untouched, and retrying will not help until an administrator fixes it.",
         "content": {
           "application/json": {
             "schema": {
@@ -3947,9 +4276,7 @@
             "example": {
               "error": {
                 "type": "provider_unavailable",
-                "message": "This deployment has no TwelveLabs credential, so the indexed footage cannot be read. Nothing was charged.",
-                "provider": "TwelveLabs",
-                "missing_config": "TWELVELABS_API_KEY",
+                "message": "Video analysis is not configured on this deployment, so the indexed footage cannot be read. Nothing was charged.",
                 "request_id": "req_…"
               }
             }
@@ -4954,7 +5281,7 @@
               "analysis_running",
               null
             ],
-            "description": "`no_index`: nothing indexed for this workspace yet (unbilled). `no_hits`: no indexed video matched within the window (billed one `corpus_question`). `unsupported_question`: the question asks for something no video could ever answer (audience demographics, sales or revenue, ad spend, or whether something is trending now, which is `POST /v1/trending`), decided before any search or read (unbilled). `needs_analysis`: some videos in the library (inside `window`, when one was given) have not been analyzed yet (unbilled); `library` carries the counts and, when nothing is already running, `estimated_cost_usd`; call `POST /v1/library/analyze` to start it. `analysis_running`: the same gate, but a pass is already running for this brand; `library.analysis_in_progress` names it, check it with `GET /v1/collections/{collection_id}` and ask again once it finishes."
+            "description": "`no_index`: nothing indexed for this workspace yet (unbilled). `no_hits`: no indexed video matched within the window (billed one `corpus_question`). `unsupported_question`: the question asks for something no video could ever answer (audience demographics, sales or revenue, ad spend, or whether something is trending now, which is `POST /v1/trending`), decided before any search or read (unbilled). `needs_analysis`: none of the videos in the library (inside `window`, when one was given) is analyzed yet, so there is nothing to answer from (unbilled). When some are analyzed and some are waiting, the ask answers from the analyzed ones instead, and `library` plus `caveat` say how many were left out; `library` carries the counts and, when nothing is already running, `estimated_cost_usd`; call `POST /v1/library/analyze` to start it. `analysis_running`: the same gate, but a pass is already running for this brand; `library.analysis_in_progress` names it, check it with `GET /v1/collections/{collection_id}` and ask again once it finishes."
           },
           "citations": {
             "type": "array",
@@ -5016,7 +5343,7 @@
           },
           "library": {
             "$ref": "#/components/schemas/LibraryStatus",
-            "description": "Present only when reason is `needs_analysis` or `analysis_running`."
+            "description": "Present when reason is `needs_analysis` or `analysis_running`, and on an answer drawn from part of the library: some videos analyzed, some still waiting. `caveat` then says how many were left out."
           },
           "indexes_searched": {
             "type": [
@@ -5152,16 +5479,12 @@
             ],
             "description": "Whether the analysis re-rank ran before the footage index was searched: a text-model pass over the stored analyses (sentiment, hook, summary, themes, claims) that surfaces videos a footage search can miss, for example a \"what are people complaining about\" question landing on videos whose analysis carries a `complaint` claim. Null when the ask never reached the index.",
             "required": [
-              "picked",
-              "model"
+              "picked"
             ],
             "properties": {
               "picked": {
                 "type": "integer",
                 "description": "How many of the final hits came from the re-rank's own picks, before the answer was cut to `hits`."
-              },
-              "model": {
-                "type": "string"
               },
               "skipped": {
                 "type": "string",
@@ -5846,9 +6169,7 @@
             "type": "object",
             "required": [
               "type",
-              "message",
-              "provider",
-              "missing_config"
+              "message"
             ],
             "properties": {
               "type": {
@@ -5862,16 +6183,6 @@
               },
               "request_id": {
                 "type": "string"
-              },
-              "provider": {
-                "type": "string",
-                "description": "The third-party provider this endpoint needs and cannot reach.",
-                "example": "TwelveLabs"
-              },
-              "missing_config": {
-                "type": "string",
-                "description": "The deployment setting whose absence caused this, named so the person who can fix it does not have to guess which provider key is missing.",
-                "example": "TWELVELABS_API_KEY"
               }
             }
           }
@@ -7810,6 +8121,28 @@
           "scanned": {
             "type": "integer",
             "description": "Every provider item the run paged through, including duplicates and out-of-window drops. Not billed."
+          },
+          "failed_platforms": {
+            "type": "array",
+            "description": "Requested platforms that failed mid-run and were dropped while the other platforms carried on. Empty when every requested platform ran.",
+            "items": {
+              "type": "object",
+              "required": [
+                "platform"
+              ],
+              "properties": {
+                "platform": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "plan_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Set when this run is one search of a collection plan (`POST /v1/collections` with `plan_id`)."
           }
         }
       },
@@ -8200,7 +8533,7 @@
       },
       "LibraryStatus": {
         "type": "object",
-        "description": "Where this workspace's library stands on analysis: watched and searchable, still waiting, or given up on. Read from POST /v1/corpus/ask when reason is needs_analysis or analysis_running, and from POST /v1/library/analyze.",
+        "description": "Where this workspace's library stands on analysis: watched and searchable, still waiting, or given up on. Read from POST /v1/corpus/ask when reason is needs_analysis or analysis_running or when an answer was drawn from part of the library, and from POST /v1/library/analyze.",
         "required": [
           "analyzed_videos",
           "videos_waiting_for_analysis",
@@ -9156,7 +9489,7 @@
               },
               "waiting_for_analysis": {
                 "type": "integer",
-                "description": "Not analyzed yet. An ask over them returns `needs_analysis` until they are."
+                "description": "Not analyzed yet. An ask answers without them, and says so, until they are; when nothing at all is analyzed it returns `needs_analysis`."
               },
               "could_not_analyze": {
                 "type": "integer"
@@ -12483,6 +12816,185 @@
               "type": "string"
             },
             "description": "Ids of listed videos with this trait, recent first, most viewed first, at most 24. Only videos in `evidence` are listed; the counts include the rest."
+          }
+        }
+      },
+      "CollectionPlanSearch": {
+        "type": "object",
+        "description": "One keyword search in a collection plan. Run, it becomes one collection.",
+        "required": [
+          "subject",
+          "platforms",
+          "target",
+          "preview",
+          "collection_id"
+        ],
+        "properties": {
+          "subject": {
+            "type": "string",
+            "description": "The search phrase, trimmed."
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "tiktok",
+                "instagram"
+              ]
+            }
+          },
+          "target": {
+            "type": "integer",
+            "description": "This search's share of the plan's total target."
+          },
+          "preview": {
+            "description": "What one page of this search returned when the plan was drafted. Null when the preview failed: nothing is known about what the search returns, and the preview was not charged.",
+            "oneOf": [
+              {
+                "type": "object",
+                "required": [
+                  "verdict",
+                  "mention_rate",
+                  "returned",
+                  "suggestion"
+                ],
+                "properties": {
+                  "verdict": {
+                    "type": "string",
+                    "enum": [
+                      "looks_right",
+                      "mixed",
+                      "looks_wrong"
+                    ],
+                    "description": "Read exactly as on `POST /v1/collections/preview`."
+                  },
+                  "mention_rate": {
+                    "type": "number",
+                    "description": "Share of the returned posts whose caption names the subject."
+                  },
+                  "returned": {
+                    "type": "integer",
+                    "description": "Posts the preview page returned, across platforms."
+                  },
+                  "suggestion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "description": "How to revise the search. Null when the verdict is `looks_right`."
+                  }
+                }
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "collection_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The collection this search became, once the plan is started. Null before that."
+          }
+        }
+      },
+      "CollectionPlan": {
+        "type": "object",
+        "description": "A collection plan: several keyword searches drafted, previewed and quoted together, then run with one `POST /v1/collections` carrying `plan_id`, one collection per search.",
+        "required": [
+          "id",
+          "label",
+          "status",
+          "searches",
+          "window_hours",
+          "target",
+          "treatment",
+          "estimate",
+          "created_at",
+          "expires_at",
+          "started_at"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "description": "The plan's short human name."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "started",
+              "expired"
+            ],
+            "description": "`draft` can be run until `expires_at`. `started` once its collections exist. `expired` is a draft past `expires_at`; draft it again."
+          },
+          "searches": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CollectionPlanSearch"
+            }
+          },
+          "window_hours": {
+            "type": "number",
+            "description": "How far back every search collects."
+          },
+          "target": {
+            "type": "integer",
+            "description": "Total videos for the plan, the sum of the searches' targets."
+          },
+          "treatment": {
+            "type": "string",
+            "enum": [
+              "full",
+              "collect_only"
+            ]
+          },
+          "estimate": {
+            "type": "object",
+            "description": "The sum of each search's `/v1/collections` estimate. Run the plan with `budget_usd` at least `cost_usd.expected`.",
+            "properties": {
+              "cost_usd": {
+                "type": "object",
+                "properties": {
+                  "low": {
+                    "type": "number"
+                  },
+                  "expected": {
+                    "type": "number"
+                  },
+                  "high": {
+                    "type": "number"
+                  }
+                }
+              },
+              "eta_minutes": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "The searches run side by side, so this is the slowest one's estimate."
+              }
+            }
+          },
+          "created_at": {
+            "type": "integer",
+            "description": "Unix ms."
+          },
+          "expires_at": {
+            "type": "integer",
+            "description": "Unix ms. A draft can be run until then: its previews and quote describe that day's search results."
+          },
+          "started_at": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Unix ms, or null until the plan is run."
           }
         }
       }
