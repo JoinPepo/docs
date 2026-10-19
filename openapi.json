@@ -1118,6 +1118,23 @@
                   "window": {
                     "type": "string",
                     "description": "e.g. \"30d\". Omit for all time."
+                  },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD in UTC: only videos posted in the range are counted, read off the index, and the report states the days. Always with posted_to, never with window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
                   }
                 }
               }
@@ -1549,6 +1566,18 @@
                     "pattern": "^(\\d+[hd]|all)$",
                     "description": "How far back to look, e.g. `24h`, `7d`, `30d`. `all`, or omitting it, reads all time, newest first. An unparseable value is a 400; it is never silently widened."
                   },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD, read in UTC: only videos posted from this day are searched. Pass with posted_to and without window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+                  },
                   "limit": {
                     "type": "integer",
                     "minimum": 1,
@@ -1563,6 +1592,11 @@
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "description": "Ceiling on the charge for this call. The work always runs to completion; the charge is held at the smaller of the estimate and this ceiling, and `usage.charge_capped` says when the metered cost went above it. Results are complete either way. A server default applies when omitted."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
                   }
                 }
               },
@@ -1654,6 +1688,25 @@
                     "pattern": "^(\\d+[hd]|all)$",
                     "description": "How far back to look, e.g. `24h`, `7d`, `30d`. `all`, or omitting it, reads all time, newest first. An unparseable value is a 400; it is never silently widened."
                   },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD in UTC: only videos posted in the range are read and cited; the answer says the range and how many videos it found outside it (`date_withheld`). Always with posted_to, never with window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Only videos from these platforms, e.g. [\"tiktok\"]. The index is not split by platform, so each video is checked as it enters the answer. Omit for all."
+                  },
                   "max_cost_usd": {
                     "type": "number",
                     "exclusiveMinimum": 0,
@@ -1681,6 +1734,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "false never watches a video again live: it answers from cached answers, transcripts (fetched from the index when not stored yet) and the stored analysis: no `video_read` is billed or held, only `corpus_question`. A hit the stored records cannot answer falls back to its stored analysis."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
                   }
                 }
               },
@@ -2136,6 +2194,35 @@
             "description": "Audit only. Include rows the subject check excluded (or pilot evidence marked ineligible). Returned rows say so in `judgeExcluded`. Only the exact value `true` turns it on."
           },
           {
+            "name": "posted_from",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "description": "First day of a range of posting dates, YYYY-MM-DD in UTC; only rows posted in the range are paged, newest first. Always with posted_to."
+          },
+          {
+            "name": "posted_to",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+          },
+          {
+            "name": "include_paid",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include videos marked as ads or sponsored (a platform paid flag or a caption disclosure), which are withheld by default and counted in `excluded_paid`. Only `true` or `false` is accepted."
+          },
+          {
             "name": "format",
             "in": "query",
             "schema": {
@@ -2170,6 +2257,20 @@
                     },
                     "has_more": {
                       "type": "boolean"
+                    },
+                    "posted_from": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "Set when the page was read from a range of posting days."
+                    },
+                    "posted_to": {
+                      "type": "string",
+                      "format": "date",
+                      "description": "Set when the page was read from a range of posting days."
+                    },
+                    "excluded_paid": {
+                      "type": "integer",
+                      "description": "Rows on this page withheld as ads or sponsored. 0 when include_paid is true."
                     },
                     "quality": {
                       "type": "object",
@@ -2428,6 +2529,18 @@
                     "pattern": "^\\d+[hd]$",
                     "description": "How far back every search collects, parsed as `POST /v1/collections` parses it. Defaults to `7d`."
                   },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD, read in UTC: every search keeps only videos posted from this day, at most 366 days in all. Pass with posted_to and without window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+                  },
                   "target": {
                     "type": "integer",
                     "minimum": 1,
@@ -2648,6 +2761,18 @@
                     "type": "string",
                     "pattern": "^\\d+[hd]$",
                     "description": "How far back to collect, e.g. \"7d\", \"30d\". Defaults to 7d."
+                  },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD, read in UTC: only videos posted from this day are collected, at most 366 days in all. Not with plan_id. Pass with posted_to and without window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
                   },
                   "target": {
                     "type": "integer",
@@ -3905,6 +4030,25 @@
                   "window": {
                     "type": "string"
                   },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD in UTC: every question reads only videos posted in the range. Always with posted_to, never with window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
+                  },
+                  "platforms": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Only videos from these platforms, e.g. [\"tiktok\"]. The index is not split by platform, so each video is checked as it enters the answer. Omit for all."
+                  },
                   "max_cost_usd": {
                     "type": "number",
                     "exclusiveMinimum": 0
@@ -3913,6 +4057,11 @@
                     "type": "boolean",
                     "default": true,
                     "description": "false never watches a video again live: it answers from cached answers, transcripts (fetched from the index when not stored yet) and the stored analysis: no `video_read` is billed or held, only `corpus_question`. A hit the stored records cannot answer falls back to its stored analysis."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
                   }
                 }
               }
@@ -4362,6 +4511,18 @@
                     "type": "string",
                     "pattern": "^\\d+[hd]$",
                     "description": "How far back every search collects. Changing it unchecks every search."
+                  },
+                  "posted_from": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "First day of a fixed range of posting dates, YYYY-MM-DD, read in UTC: replaces the plan's window or range and unchecks every search. A window passed alone drops the range. Pass with posted_to and without window."
+                  },
+                  "posted_to": {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+                    "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC, no later than today. Always with posted_from."
                   },
                   "target": {
                     "type": "integer",
@@ -5654,6 +5815,10 @@
               "excluded_official": {
                 "type": "integer",
                 "description": "Results withheld because the author is a declared official account (`official_accounts` on the brand profile); this brand's own or a competitor's. Withheld for both: a subject's own post about itself is not someone else's voice."
+              },
+              "excluded_paid": {
+                "type": "integer",
+                "description": "Matches left out as ads or sponsored. 0 with include_paid true."
               }
             }
           },
@@ -5661,6 +5826,16 @@
             "type": "string",
             "description": "**Read this.** States exactly which fields were searched, so an empty result is not mistaken for an absence of such video.",
             "example": "Token overlap over stored captions, creator handles, each video's stored analysis (summary, hook, themes, claims) when one has been run, and reviewed product-family identity when present. Versioned pilot rows require every query term to match, so a generic family word cannot substitute for a specific product noun. Raw transcripts, on-screen text, detected products/logos and audio are NOT searched because those fields are not present in this corpus yet, so an empty result is not evidence that no such video exists."
+          },
+          "posted_from": {
+            "type": "string",
+            "format": "date",
+            "description": "Set when the search read a range of posting days, YYYY-MM-DD in UTC."
+          },
+          "posted_to": {
+            "type": "string",
+            "format": "date",
+            "description": "Set when the search read a range of posting days, YYYY-MM-DD in UTC."
           },
           "caveat": {
             "type": [
@@ -6007,6 +6182,10 @@
           },
           "actions": {
             "$ref": "#/components/schemas/ActionSet"
+          },
+          "paid_withheld": {
+            "type": "integer",
+            "description": "Videos this ask found but left out as ads or sponsored, among the hits and candidates it considered. Present only when some were; `caveat` says so in words. Absent with include_paid true."
           }
         }
       },
@@ -8513,6 +8692,22 @@
           "window_hours": {
             "type": "number"
           },
+          "posted_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "First day of the fixed range of posting dates this covers, YYYY-MM-DD in UTC. Null for a window that ends now."
+          },
+          "posted_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC. Null for a window that ends now."
+          },
           "target": {
             "type": "integer",
             "description": "Videos requested, 1 to 5000."
@@ -8586,6 +8781,10 @@
           "scanned": {
             "type": "integer",
             "description": "Every provider item the run paged through, including duplicates and out-of-window drops. Not billed."
+          },
+          "out_of_window": {
+            "type": "integer",
+            "description": "Of the videos scanned, how many were not kept because they were posted outside the window or range."
           },
           "failed_platforms": {
             "type": "array",
@@ -10360,6 +10559,10 @@
           "across_videos": {
             "type": "object",
             "description": "As on `POST /v1/corpus/ask`, over the answering videos."
+          },
+          "paid_withheld": {
+            "type": "integer",
+            "description": "Videos left out of this question as ads or sponsored. Present only when some were."
           }
         }
       },
@@ -11462,6 +11665,10 @@
               "type": "string"
             }
           },
+          "include_paid": {
+            "type": "boolean",
+            "description": "Whether ads and sponsored videos were counted. When false, they are withheld and counted in `corpus.withheld.paid`."
+          },
           "corpus": {
             "type": "object",
             "required": [
@@ -11482,7 +11689,8 @@
                 "type": "boolean"
               },
               "withheld": {
-                "type": "object"
+                "type": "object",
+                "description": "Posts withheld before counting, by reason: own_posts, official_accounts, off_subject, excluded_topics, other_platforms, and paid (ads or sponsored, unless include_paid)."
               },
               "comments_withheld": {
                 "type": "object"
@@ -13489,6 +13697,22 @@
           "window_hours": {
             "type": "number",
             "description": "How far back every search collects."
+          },
+          "posted_from": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "First day of the fixed range of posting dates every search keeps; it wins over window_hours, YYYY-MM-DD in UTC. Null for a window that ends now."
+          },
+          "posted_to": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date",
+            "description": "Last day of the range, inclusive, YYYY-MM-DD in UTC. Null for a window that ends now."
           },
           "target": {
             "type": "integer",
