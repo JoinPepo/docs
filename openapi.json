@@ -1894,7 +1894,7 @@
       "post": {
         "operationId": "analyzeLibrary",
         "summary": "Analyze the videos waiting in the library",
-        "description": "The yes to a `needs_analysis` answer from `POST /v1/corpus/ask`: analyzes the videos in the library that have not been analyzed yet, including rows a `collect_only` collection left waiting. Nothing new is collected. Reddit rows, excluded rows, the brand's own posts and the non-representative copies of a duplicate cluster are skipped: they were never part of what an ask reads.\n\n**Price.** Each waiting video is priced for the steps it still needs: one credit, `video_analyzed` ($1), if it has no stored analysis, regardless of length (short-form TikTok and Instagram). Indexing and the media fetch are included, so a video that only needs indexing costs nothing. There is no subject check in a library pass. The estimate is held when the pass starts and settled once it finishes for the steps that actually ran, never above the hold.\n\n**Passes.** One pass may hold at most the call cap: `max_cost_usd` when given, else the workspace's own default call cap, else the endpoint default. The pass takes the waiting videos that fit under it, in library order; `videos_left_for_a_later_pass` says how many remain, and the next ask quotes them. It is refused with `budget_too_low` only when not even one waiting video fits.\n\nReturns 202 once accepted; poll `GET /v1/collections/{collection_id}` for progress, then ask the same question again through `POST /v1/corpus/ask` once it finishes. Returns 200 with `started: false` and no charge when nothing is waiting, or when a pass is already running for this brand, in which case `library.analysis_in_progress` names it.",
+        "description": "The yes to a `needs_analysis` answer from `POST /v1/corpus/ask`: analyzes the videos in the library that have not been analyzed yet, including rows a `collect_only` collection left waiting. Nothing new is collected. Reddit rows, excluded rows, the brand's own posts and the non-representative copies of a duplicate cluster are skipped: they were never part of what an ask reads.\n\n**Price.** Each waiting video is priced for the steps it still needs: one credit, `video_analyzed` ($1), if it has no stored analysis, regardless of length (short-form TikTok and Instagram). Indexing and the media fetch are included, so a video that only needs indexing costs nothing. There is no subject check in a library pass. The estimate is held when the pass starts and settled once it finishes for the steps that actually ran, never above the hold.\n\n**Passes.** One pass may hold at most the call cap: `max_cost_usd` when given, else the workspace's own default call cap, else the endpoint default. The pass takes the waiting videos that fit under it, in library order, or in the order of `video_ids` when given, which then covers only those of them that are waiting (the rest are listed in `skipped`); `videos_left_for_a_later_pass` says how many remain, and the next ask quotes them. It is refused with `budget_too_low` only when not even one waiting video fits.\n\nReturns 202 once accepted; poll `GET /v1/collections/{collection_id}` for progress, then ask the same question again through `POST /v1/corpus/ask` once it finishes. Returns 200 with `started: false` and no charge when nothing is waiting, or when a pass is already running for this brand, in which case `library.analysis_in_progress` names it.",
         "tags": [
           "Library"
         ],
@@ -1909,6 +1909,16 @@
                     "type": "number",
                     "exclusiveMinimum": 0,
                     "description": "Optional ceiling for this pass. The pass takes only the waiting videos whose estimated cost fits under it; if not even one fits, the call is refused with `budget_too_low` and nothing starts."
+                  },
+                  "video_ids": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 500,
+                    "uniqueItems": true,
+                    "items": {
+                      "type": "string"
+                    },
+                    "description": "Analyze only these waiting videos, in this order (the video ids `list_videos`, `search_videos` and `get_video` return). The order is the ranking: when the cap cuts the list, the later ones wait. Ids that are not waiting are not an error: they come back in `skipped` with a reason. Leave out to analyze every waiting video."
                   }
                 }
               },
@@ -1960,6 +1970,31 @@
                     },
                     "request_id": {
                       "type": "string"
+                    },
+                    "skipped": {
+                      "type": "array",
+                      "description": "Present when `video_ids` was given. Each chosen video that was not taken, and why.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "video_id",
+                          "reason"
+                        ],
+                        "properties": {
+                          "video_id": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "already_analyzed",
+                              "could_not_analyze",
+                              "not_applicable",
+                              "not_in_library"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -2029,6 +2064,31 @@
                     },
                     "request_id": {
                       "type": "string"
+                    },
+                    "skipped": {
+                      "type": "array",
+                      "description": "Present when `video_ids` was given. Each chosen video that was not taken, and why.",
+                      "items": {
+                        "type": "object",
+                        "required": [
+                          "video_id",
+                          "reason"
+                        ],
+                        "properties": {
+                          "video_id": {
+                            "type": "string"
+                          },
+                          "reason": {
+                            "type": "string",
+                            "enum": [
+                              "already_analyzed",
+                              "could_not_analyze",
+                              "not_applicable",
+                              "not_in_library"
+                            ]
+                          }
+                        }
+                      }
                     }
                   }
                 }
@@ -8785,6 +8845,36 @@
           "out_of_window": {
             "type": "integer",
             "description": "Of the videos scanned, how many were not kept because they were posted outside the window or range."
+          },
+          "analyze_target": {
+            "type": ["integer", "null"],
+            "description": "How many of the landed videos this run analyzes. The run looks for more candidates than this and picks the most relevant and most watched; null when it analyzes everything it lands."
+          },
+          "chosen_for_analysis": {
+            "type": ["integer", "null"],
+            "description": "How many landed videos were sent on to analysis. Null until the run has settled, or when it analyzes everything it lands."
+          },
+          "kept_in_catalog": {
+            "type": "integer",
+            "description": "Landed videos kept in the library without being analyzed. They are free, searchable by caption, and `POST /v1/library/analyze` with `video_ids` analyzes any of them."
+          },
+          "feed_yield": {
+            "type": "array",
+            "description": "What each feed the run paged (a platform's keyword, phrasing, hashtag or creator account) returned, kept in the window, landed and dropped, so the breadth of a search can be read after the fact. Empty on runs that predate the record.",
+            "items": {
+              "type": "object",
+              "required": ["platform", "kind", "term", "pages", "returned", "in_window", "landed", "dropped"],
+              "properties": {
+                "platform": { "type": "string" },
+                "kind": { "type": "string", "enum": ["keyword", "hashtag", "creator"] },
+                "term": { "type": "string" },
+                "pages": { "type": "integer" },
+                "returned": { "type": "integer", "description": "Items the feed's pages held, including those the relevance check dropped." },
+                "in_window": { "type": "integer", "description": "Of the items that reached the window check, those inside it." },
+                "landed": { "type": "integer", "description": "New videos this feed put in the library." },
+                "dropped": { "type": "integer", "description": "Dropped by the relevance check: off subject or the brand's own account." }
+              }
+            }
           },
           "failed_platforms": {
             "type": "array",
