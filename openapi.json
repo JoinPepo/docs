@@ -1656,7 +1656,7 @@
       "post": {
         "operationId": "askCorpus",
         "summary": "Ask a question of the analyzed videos",
-        "description": "Answer a natural-language question from what the videos in this workspace actually SAY and SHOW, with a citation (creator, URL, clip timestamps) under every paragraph. This is the brainstorming surface: ask \"what do people complain about\", \"how do the videos that show the product differ from the ones that don't\", or \"which hooks recur\", and follow up.\n\nRetrieval is a search over the workspace's video index, re-ranked with the stored analyses; each of the top `hits` videos is then answered from its stored timed transcript and on-screen record first, and read live from the footage only when that text cannot answer. When a live read fails (asset gone, provider quota, time budget) the stored analysis stands in and `sources[].method` says so. When two or more videos are cited, `across_videos` counts their sentiment, format, setting, products and visible actions so a comparison rests on numbers.\n\n**`answer: null` is a 200, not an error.** Before anything is searched or held, every video in the library (inside `window`, when given) must be analyzed: otherwise the answer is `reason: \"needs_analysis\"` with the count and price of catching up, unbilled, and `POST /v1/library/analyze` starts it. `no_index` means nothing has been indexed yet (unbilled). `no_hits` means no indexed video matched within the window: *not in the analyzed videos*, never *nobody said it*. `unsupported_question` means the question itself (audience demographics, sales or revenue, ad spend, or whether something is trending now) is not something any video could ever answer, decided before the index is checked, unbilled. Only one video per duplicate cluster is indexed, so `index_videos` is smaller than the library.\n\nCosts credits: one `corpus_question` per question answered (including `no_hits`), plus one `video_read` per video whose footage was read live for this ask. Answers from the stored transcript or on-screen record (`read_transcript`), from the answer cache (`cached: true`), from stored analysis, or unanswered are not reads and are not billed. Nothing is billed for `needs_analysis`, `no_index`, `unsupported_question`, or a result where every hit degraded and no footage was read live.",
+        "description": "Answer a natural-language question from what the videos in this workspace actually SAY and SHOW, with a citation (creator, URL, clip timestamps) under every paragraph. This is the brainstorming surface: ask \"what do people complain about\", \"how do the videos that show the product differ from the ones that don't\", or \"which hooks recur\", and follow up.\n\nRetrieval is a search over the workspace's video index, re-ranked with the stored analyses; each of the top `hits` videos is then answered from its stored timed transcript and on-screen record first, and read live from the footage only when that text cannot answer. When a live read fails (asset gone, provider quota, time budget) the stored analysis stands in and `sources[].method` says so. When two or more videos are cited, `across_videos` counts their sentiment, format, setting, products, visible actions, hook types and recurring themes so a comparison rests on numbers.\n\n**`answer: null` is a 200, not an error.** Before anything is searched or held, every video in the library (inside `window`, when given) must be analyzed: otherwise the answer is `reason: \"needs_analysis\"` with the count and price of catching up, unbilled, and `POST /v1/library/analyze` starts it. `no_index` means nothing has been indexed yet (unbilled). `no_hits` means no indexed video matched within the window: *not in the analyzed videos*, never *nobody said it*. `unsupported_question` means the question itself (audience demographics, sales or revenue, ad spend, or whether something is trending now) is not something any video could ever answer, decided before the index is checked, unbilled. Only one video per duplicate cluster is indexed, so `index_videos` is smaller than the library.\n\nCosts credits: one `corpus_question` per question answered (including `no_hits`), plus one `video_read` per video whose footage was read live for this ask. Answers from the stored transcript or on-screen record (`read_transcript`), from the answer cache (`cached: true`), from stored analysis, or unanswered are not reads and are not billed. Nothing is billed for `needs_analysis`, `no_index`, `unsupported_question`, or a result where every hit degraded and no footage was read live.",
         "tags": [
           "Library"
         ],
@@ -9760,7 +9760,7 @@
       },
       "AcrossVideos": {
         "type": "object",
-        "description": "Deterministic counts over the cited videos' stored sentiment and on-screen records, so a comparison is built on numbers rather than tallied by eye from the paragraphs. No model judgment. Present only when at least two videos were cited. Each list is sorted by count and holds at most 8 rows.",
+        "description": "Deterministic counts over the cited videos' stored sentiment, on-screen records, hooks and themes, so a comparison is built on numbers rather than tallied by eye from the paragraphs. No model judgment. Present only when at least two videos were cited. Each list is sorted by count and holds at most 8 rows.",
         "required": [
           "videos",
           "with_on_screen",
@@ -9773,7 +9773,11 @@
           "product_shown_how",
           "brands_shown",
           "products",
-          "recurring_actions"
+          "recurring_actions",
+          "with_hook",
+          "with_themes",
+          "hooks",
+          "themes"
         ],
         "properties": {
           "videos": {
@@ -9971,6 +9975,56 @@
               }
             },
             "description": "Visible actions that recur in more than one video."
+          },
+          "with_hook": {
+            "type": "integer",
+            "description": "How many cited videos have a recorded opening hook. `hooks` is out of this number. A hook the classifier cannot place counts here but in no row."
+          },
+          "with_themes": {
+            "type": "integer",
+            "description": "How many cited videos have stored analysis themes. `themes` is out of this number."
+          },
+          "hooks": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "required": [
+                "value",
+                "videos"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer",
+                  "description": "Videos with this value. Each video counts once per value."
+                }
+              }
+            },
+            "description": "Opening hooks counted by the move they make (question, listicle, comparison, result_claim and so on), classified exactly as creative_report classifies hook type: rules over the recorded hook text, then the analysis's own hook type when the rules cannot place it. Unclassified hooks are not a row."
+          },
+          "themes": {
+            "type": "array",
+            "maxItems": 8,
+            "items": {
+              "type": "object",
+              "required": [
+                "value",
+                "videos"
+              ],
+              "properties": {
+                "value": {
+                  "type": "string"
+                },
+                "videos": {
+                  "type": "integer",
+                  "description": "Videos with this value. Each video counts once per value."
+                }
+              }
+            },
+            "description": "Analysis themes that recur in more than one video, folded on case and punctuation and labelled with the most frequent spelling."
           }
         }
       },
