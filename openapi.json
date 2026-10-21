@@ -2616,6 +2616,11 @@
                     ],
                     "default": "full",
                     "description": "As on `POST /v1/collections`, for every search."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Whether videos marked as ads or sponsored (a platform paid flag or a caption disclosure, the same rule every reader applies with `include_paid`) may be analyzed. Default false: they are kept in the library unanalyzed and uncharged, and other videos the searches found are analyzed in their place."
                   }
                 }
               },
@@ -4599,6 +4604,10 @@
                     ],
                     "default": "full",
                     "description": "As on `POST /v1/collections`, for every search."
+                  },
+                  "include_paid": {
+                    "type": "boolean",
+                    "description": "Whether videos marked as ads or sponsored may be analyzed, as on `POST /v1/collections/plans`. Keeps every check."
                   }
                 }
               },
@@ -13815,6 +13824,10 @@
               "full",
               "collect_only"
             ]
+          },
+          "include_paid": {
+            "type": "boolean",
+            "description": "Whether ads and sponsored videos may be chosen for analysis. When false they are kept in the library, unanalyzed and uncharged."
           },
           "estimate": {
             "type": "object",
