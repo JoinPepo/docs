@@ -1135,6 +1135,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
+                  },
+                  "include_ai": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos that look AI-made (the platform's AI-generated label, a caption disclosure such as #aigenerated or \"made with AI\", or two weaker signals together such as an AI presenter with a text-to-speech voice) are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too, each marked with why."
                   }
                 }
               }
@@ -1597,6 +1602,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
+                  },
+                  "include_ai": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos that look AI-made (the platform's AI-generated label, a caption disclosure such as #aigenerated or \"made with AI\", or two weaker signals together such as an AI presenter with a text-to-speech voice) are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too, each marked with why."
                   }
                 }
               },
@@ -1739,6 +1749,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
+                  },
+                  "include_ai": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos that look AI-made (the platform's AI-generated label, a caption disclosure such as #aigenerated or \"made with AI\", or two weaker signals together such as an AI presenter with a text-to-speech voice) are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too, each marked with why."
                   }
                 }
               },
@@ -2283,6 +2298,15 @@
             "description": "Include videos marked as ads or sponsored (a platform paid flag or a caption disclosure), which are withheld by default and counted in `excluded_paid`. Only `true` or `false` is accepted."
           },
           {
+            "name": "include_ai",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            },
+            "description": "Include videos that look AI-made (a platform AI label, a caption disclosure, or two weaker signals together), which are withheld by default and counted in `excluded_ai`. Only `true` or `false` is accepted."
+          },
+          {
             "name": "format",
             "in": "query",
             "schema": {
@@ -2331,6 +2355,14 @@
                     "excluded_paid": {
                       "type": "integer",
                       "description": "Rows on this page withheld as ads or sponsored. 0 when include_paid is true."
+                    },
+                    "excluded_ai": {
+                      "type": "integer",
+                      "description": "Rows or matches left out because they look AI-made (a platform AI label, a caption disclosure, or two weaker signals together). 0 with include_ai true. A paid AI video is counted once, in excluded_paid."
+                    },
+                    "excluded_official": {
+                      "type": "integer",
+                      "description": "Rows on this page withheld because the brand or a competitor posted them itself: the collector's own-post flag, or an author that is a declared official account (`official_accounts` on the brand profile, or the brand's name run together when the profile declares none). Always withheld: a brand's own posts are not consumer voice."
                     },
                     "quality": {
                       "type": "object",
@@ -4127,6 +4159,11 @@
                     "type": "boolean",
                     "default": false,
                     "description": "Default false: videos marked as ads or sponsored (the platform's ad, paid partnership or branded content flag, or a caption disclosure such as #ad or \"gifted by\") are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too."
+                  },
+                  "include_ai": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Default false: videos that look AI-made (the platform's AI-generated label, a caption disclosure such as #aigenerated or \"made with AI\", or two weaker signals together such as an AI presenter with a text-to-speech voice) are left out, because they are not unprompted consumer voice, and the response says how many. true reads them too, each marked with why."
                   }
                 }
               }
@@ -5541,7 +5578,7 @@
               },
               "excluded_official": {
                 "type": "integer",
-                "description": "Results withheld because the author is a declared official account (`official_accounts` on the brand profile); this brand's own or a competitor's. Withheld for both: a subject's own post about itself is not someone else's voice."
+                "description": "Results withheld because the brand or a competitor posted them itself: the collector's own-post flag, or an author that is a declared official account (`official_accounts` on the brand profile, or the brand's name run together when the profile declares none). Withheld for both: a subject's own post about itself is not someone else's voice."
               }
             }
           },
@@ -5883,11 +5920,15 @@
               },
               "excluded_official": {
                 "type": "integer",
-                "description": "Results withheld because the author is a declared official account (`official_accounts` on the brand profile); this brand's own or a competitor's. Withheld for both: a subject's own post about itself is not someone else's voice."
+                "description": "Results withheld because the brand or a competitor posted them itself: the collector's own-post flag, or an author that is a declared official account (`official_accounts` on the brand profile, or the brand's name run together when the profile declares none). Withheld for both: a subject's own post about itself is not someone else's voice."
               },
               "excluded_paid": {
                 "type": "integer",
                 "description": "Matches left out as ads or sponsored. 0 with include_paid true."
+              },
+              "excluded_ai": {
+                "type": "integer",
+                "description": "Rows or matches left out because they look AI-made (a platform AI label, a caption disclosure, or two weaker signals together). 0 with include_ai true. A paid AI video is counted once, in excluded_paid."
               }
             }
           },
@@ -6255,6 +6296,14 @@
           "paid_withheld": {
             "type": "integer",
             "description": "Videos this ask found but left out as ads or sponsored, among the hits and candidates it considered. Present only when some were; `caveat` says so in words. Absent with include_paid true."
+          },
+          "ai_withheld": {
+            "type": "integer",
+            "description": "Videos this ask found but left out because they look AI-made, counted the same way and after paid_withheld (a paid AI video is counted once, as paid). Present only when some were; `caveat` says so in words. Absent with include_ai true."
+          },
+          "own_withheld": {
+            "type": "integer",
+            "description": "Videos this ask found but left out because the brand or a competitor posted them itself (the collector's own-post flag or a declared official account), among the hits and candidates it considered. Always withheld. Present only when some were; `caveat` says so in words."
           }
         }
       },
@@ -7105,7 +7154,7 @@
           },
           "excluded_official": {
             "type": "integer",
-            "description": "Results withheld because the author is a declared official account (`official_accounts` on the brand profile); this brand's own or a competitor's. Withheld for both: a subject's own post about itself is not someone else's voice."
+            "description": "Results withheld because the brand or a competitor posted them itself: the collector's own-post flag, or an author that is a declared official account (`official_accounts` on the brand profile, or the brand's name run together when the profile declares none). Withheld for both: a subject's own post about itself is not someone else's voice."
           },
           "disclaimer": {
             "type": "string"
@@ -10717,6 +10766,14 @@
           "paid_withheld": {
             "type": "integer",
             "description": "Videos left out of this question as ads or sponsored. Present only when some were."
+          },
+          "ai_withheld": {
+            "type": "integer",
+            "description": "Videos this ask found but left out because they look AI-made, counted the same way and after paid_withheld (a paid AI video is counted once, as paid). Present only when some were; `caveat` says so in words. Absent with include_ai true."
+          },
+          "own_withheld": {
+            "type": "integer",
+            "description": "Videos left out of this question because the brand or a competitor posted them itself. Present only when some were."
           }
         }
       },
@@ -11823,6 +11880,10 @@
             "type": "boolean",
             "description": "Whether ads and sponsored videos were counted. When false, they are withheld and counted in `corpus.withheld.paid`."
           },
+          "include_ai": {
+            "type": "boolean",
+            "description": "Whether videos that look AI-made were counted. When false, they are withheld and counted in `corpus.withheld.ai`."
+          },
           "corpus": {
             "type": "object",
             "required": [
@@ -11844,7 +11905,7 @@
               },
               "withheld": {
                 "type": "object",
-                "description": "Posts withheld before counting, by reason: own_posts, official_accounts, off_subject, excluded_topics, other_platforms, and paid (ads or sponsored, unless include_paid)."
+                "description": "Posts withheld before counting, by reason: own_posts, official_accounts, off_subject, excluded_topics, other_platforms, paid (ads or sponsored, unless include_paid), and ai (videos that look AI-made, unless include_ai)."
               },
               "comments_withheld": {
                 "type": "object"
